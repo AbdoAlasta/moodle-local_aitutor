@@ -1,0 +1,745 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * AI Tutor front-end: chat, quiz, flashcards, study plan and summary renderers.
+ *
+ * All content coming from the server or the AI is inserted with textContent / DOM APIs
+ * (never innerHTML), so it cannot inject markup.
+ *
+ * @module     local_aitutor/app
+ * @copyright  2026
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+import Ajax from 'core/ajax';
+
+const SELECTORS = {
+    root: '[data-region="aitutor"]',
+    messages: '[data-region="messages"]',
+    composer: '[data-region="composer"]',
+    input: '[data-region="input"]',
+    resource: '[data-region="resource-select"]',
+    useResource: '[data-region="use-resource"]',
+    recent: '[data-region="recent-chats"]',
+    title: '[data-region="chat-title"]',
+    resourceName: '[data-region="resource-name"]',
+    contextBody: '[data-region="context-body"]',
+};
+
+/**
+ * Tiny hyperscript helper that builds DOM nodes safely.
+ *
+ * @param {string} tag
+ * @param {Object} attrs
+ * @param {...*} children
+ * @return {HTMLElement}
+ */
+const h = (tag, attrs = {}, ...children) => {
+    const el = document.createElement(tag);
+    Object.entries(attrs || {}).forEach(([key, value]) => {
+        if (value === null || value === undefined || value === false) {
+            return;
+        }
+        if (key === 'class') {
+            el.className = value;
+        } else if (key.startsWith('on') && typeof value === 'function') {
+            el.addEventListener(key.slice(2), value);
+        } else {
+            el.setAttribute(key, value === true ? '' : value);
+        }
+    });
+    children.flat().forEach((child) => {
+        if (child === null || child === undefined || child === false) {
+            return;
+        }
+        el.append(child instanceof Node ? child : document.createTextNode(String(child)));
+    });
+    return el;
+};
+
+/**
+ * Replaces {$a} or {$a->key} placeholders in a Moodle-style string.
+ *
+ * @param {string} str
+ * @param {string|Object} a
+ * @return {string}
+ */
+const fmt = (str, a) => {
+    if (a !== null && typeof a === 'object') {
+        return Object.keys(a).reduce((out, key) => out.split('{$a->' + key + '}').join(String(a[key])), str);
+    }
+    return str.split('{$a}').join(String(a));
+};
+
+/**
+ * Inline markdown (bold, italic, code) to DOM nodes.
+ *
+ * @param {string} text
+ * @return {DocumentFragment}
+ */
+const inline = (text) => {
+    const frag = document.createDocumentFragment();
+    const re = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*\s][^*]*\*)/g;
+    let last = 0;
+    let match;
+    while ((match = re.exec(text)) !== null) {
+        if (match.index > last) {
+            frag.append(text.slice(last, match.index));
+        }
+        const token = match[0];
+        if (token.startsWith('**')) {
+            frag.append(h('strong', {}, token.slice(2, -2)));
+        } else if (token.startsWith('`')) {
+            frag.append(h('code', {}, token.slice(1, -1)));
+        } else {
+            frag.append(h('em', {}, token.slice(1, -1)));
+        }
+        last = match.index + token.length;
+    }
+    if (last < text.length) {
+        frag.append(text.slice(last));
+    }
+    return frag;
+};
+
+const BULLET = /^\s*([-*\u2022])\s+/;
+const ORDERED = /^\s*\d+[.)]\s+/;
+
+/**
+ * Light markdown (paragraphs, lists, headings, code fences) to DOM.
+ *
+ * @param {string} src
+ * @return {HTMLElement}
+ */
+const markdown = (src) => {
+    const root = h('div', {class: 'aitutor-md'});
+    const lines = String(src).replace(/\r/g, '').split('\n');
+    let i = 0;
+    while (i < lines.length) {
+        const line = lines[i];
+        if (/^```/.test(line)) {
+            const code = [];
+            i++;
+            while (i < lines.length && !/^```/.test(lines[i])) {
+                code.push(lines[i++]);
+            }
+            i++;
+            root.append(h('pre', {}, h('code', {}, code.join('\n'))));
+            continue;
+        }
+        if (BULLET.test(line) || ORDERED.test(line)) {
+            const ordered = ORDERED.test(line);
+            const re = ordered ? ORDERED : BULLET;
+            const list = h(ordered ? 'ol' : 'ul');
+            while (i < lines.length && re.test(lines[i])) {
+                list.append(h('li', {}, inline(lines[i].replace(re, ''))));
+                i++;
+            }
+            root.append(list);
+            continue;
+        }
+        const heading = line.match(/^#{1,6}\s+(.*)$/);
+        if (heading) {
+            root.append(h('p', {class: 'aitutor-md-heading'}, h('strong', {}, inline(heading[1]))));
+            i++;
+            continue;
+        }
+        if (line.trim() === '') {
+            i++;
+            continue;
+        }
+        const para = [];
+        while (i < lines.length && lines[i].trim() !== '' && !/^```/.test(lines[i]) && !BULLET.test(lines[i])
+                && !ORDERED.test(lines[i]) && !/^#{1,6}\s/.test(lines[i])) {
+            para.push(lines[i++]);
+        }
+        const p = h('p');
+        para.forEach((text, idx) => {
+            if (idx) {
+                p.append(h('br'));
+            }
+            p.append(inline(text));
+        });
+        root.append(p);
+    }
+    return root;
+};
+
+/**
+ * Mounts the AI Tutor interface inside an element that already contains the AI Tutor markup.
+ *
+ *
+ * @param {HTMLElement} root Element carrying data-region="aitutor".
+ * Every course has its own tutor: the course is fixed when the interface is mounted, so the conversation,
+ * the recent chats and the resources always belong to that one course.
+ *
+ * @param {Object} config {courseid, coursename, strings, rtl}
+ * @return {Object} Controller with focus().
+ */
+export const mount = (root, config) => {
+    const S = config.strings;
+    const els = {
+        messages: root.querySelector(SELECTORS.messages),
+        composer: root.querySelector(SELECTORS.composer),
+        input: root.querySelector(SELECTORS.input),
+        resource: root.querySelector(SELECTORS.resource),
+        useResource: root.querySelector(SELECTORS.useResource),
+        recent: root.querySelector(SELECTORS.recent),
+        title: root.querySelector(SELECTORS.title),
+        resourceName: root.querySelector(SELECTORS.resourceName),
+        contextBody: root.querySelector(SELECTORS.contextBody),
+    };
+    const state = {
+        courseid: config.courseid,
+        coursename: config.coursename || '',
+        allChats: false, // Recent chats panel: false = the latest few, true = everything ("View all").
+        chatid: 0,
+        mode: 'chat', // Sticky mode for typed messages: 'chat' or 'assignment'.
+        resources: [],
+        busy: false,
+        last: null, // Last request, for retry.
+    };
+
+    const call = (methodname, args) => Ajax.call([{methodname, args}])[0];
+
+    const currentCmid = () => parseInt(els.resource.value, 10) || 0;
+    const currentResource = () => state.resources.find((r) => r.id === currentCmid()) || null;
+    const subject = () => (currentResource() ? currentResource().name : state.coursename);
+
+    const scrollDown = () => {
+        els.messages.scrollTop = els.messages.scrollHeight;
+    };
+
+    const timeLabel = (ts) => new Date((ts || Date.now() / 1000) * 1000)
+        .toLocaleTimeString(document.documentElement.lang || undefined, {hour: 'numeric', minute: '2-digit'});
+
+    // Time for today, "Yesterday", otherwise a short date (the "Recent chats" list).
+    const dateLabel = (ts) => {
+        const date = new Date(ts * 1000);
+        const now = new Date();
+        const startOf = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+        const days = Math.round((startOf(now) - startOf(date)) / 86400000);
+        const lang = document.documentElement.lang || undefined;
+        if (days <= 0) {
+            return date.toLocaleTimeString(lang, {hour: 'numeric', minute: '2-digit'});
+        }
+        if (days === 1) {
+            return S.yesterday;
+        }
+        return date.toLocaleDateString(lang, {month: 'short', day: 'numeric'});
+    };
+
+    // Shows the selected resource name in the Course Context card (full page only).
+    const syncResourceLabel = () => {
+        if (els.resourceName) {
+            const res = currentResource();
+            els.resourceName.textContent = res ? res.name : S.noresource_selected;
+        }
+    };
+
+    /**
+     * Appends a message row to the conversation.
+     *
+     * @param {string} role 'user' or 'tutor'
+     * @param {Node|Node[]} body
+     * @param {Object} opts
+     * @return {HTMLElement}
+     */
+    const addRow = (role, body, opts = {}) => {
+        const bubble = h('div', {class: 'aitutor-bubble' + (opts.wide ? ' aitutor-bubble-wide' : '') +
+            (opts.error ? ' aitutor-bubble-error' : '')}, body);
+        const row = h('div', {class: 'aitutor-row aitutor-row-' + role}, [
+            role === 'tutor' ? h('span', {class: 'aitutor-avatar', 'aria-hidden': 'true'}) : null,
+            h('div', {class: 'aitutor-col'}, [
+                bubble,
+                opts.time === false ? null : h('div', {class: 'aitutor-time'}, timeLabel(opts.timecreated)),
+            ]),
+        ]);
+        els.messages.append(row);
+        scrollDown();
+        return row;
+    };
+
+    const addText = (role, text, opts) => addRow(role, role === 'tutor' ? markdown(text) : h('span', {}, text), opts);
+
+    const chipRow = (chips) => h('div', {class: 'aitutor-chips'}, chips.map((chip) => h('button', {
+        type: 'button',
+        class: 'aitutor-chip',
+        onclick: () => send(chip.text, chip.mode || 'chat'),
+    }, chip.text)));
+
+    // ---- Renderers for structured replies ----------------------------------------------------
+
+    const renderStudyPlan = (data) => h('div', {class: 'aitutor-card'}, [
+        h('div', {class: 'aitutor-card-title'}, data.title),
+        h('ul', {class: 'aitutor-plan'}, data.weeks.map((w) => h('li', {}, [h('strong', {}, w.label + ': '), w.topics]))),
+        data.includes && data.includes.length ? h('div', {class: 'aitutor-includes'}, [
+            h('strong', {}, S.includes),
+            h('ul', {}, data.includes.map((item) => h('li', {}, '\u2713 ' + item))),
+        ]) : null,
+    ]);
+
+    const renderFlashcards = (data) => h('div', {class: 'aitutor-cards'}, [
+        data.title ? h('div', {class: 'aitutor-card-title'}, data.title) : null,
+        h('div', {class: 'aitutor-hint'}, S.cardhint),
+        data.cards.map((card, idx) => {
+            const back = h('div', {class: 'aitutor-flash-back', hidden: true}, card.back);
+            const hintEl = h('small', {class: 'aitutor-flash-hint'}, S.tapreveal);
+            const btn = h('button', {type: 'button', class: 'aitutor-flash', 'aria-expanded': 'false',
+                'aria-label': fmt(S.flashcard, {current: idx + 1, total: data.cards.length})}, [
+                h('strong', {}, card.front), hintEl, back,
+            ]);
+            btn.addEventListener('click', () => {
+                const open = btn.getAttribute('aria-expanded') === 'true';
+                btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+                back.hidden = open;
+                hintEl.hidden = !open;
+                btn.classList.toggle('is-open', !open);
+            });
+            return btn;
+        }),
+    ]);
+
+    const renderSummary = (data, msg) => {
+        const download = () => {
+            const text = data.title + '\n\n' + data.bullets.map((b) => '- ' + b).join('\n') + '\n';
+            const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+            const url = URL.createObjectURL(blob);
+            const a = h('a', {href: url, download: (data.title || 'summary').replace(/[^\p{L}\p{N}_-]+/gu, '_') + '.txt'});
+            document.body.append(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        };
+        const url = msg.resourceurl || '';
+        const safeUrl = url.startsWith(window.location.origin) ? url : '';
+        return h('div', {class: 'aitutor-card'}, [
+            h('div', {class: 'aitutor-card-title'}, data.title),
+            h('ul', {}, data.bullets.map((b) => h('li', {}, b))),
+            h('div', {class: 'aitutor-actions'}, [
+                safeUrl ? h('a', {class: 'btn btn-sm btn-outline-secondary', href: safeUrl}, S.vieworiginal)
+                    : h('button', {type: 'button', class: 'btn btn-sm btn-outline-secondary', disabled: true}, S.vieworiginal),
+                h('button', {type: 'button', class: 'btn btn-sm btn-primary', onclick: download}, S.downloadsummary),
+            ]),
+        ]);
+    };
+
+    const renderQuiz = (data) => {
+        const wrap = h('div', {class: 'aitutor-card aitutor-quiz'});
+        const questions = data.questions;
+        let index = 0;
+        let score = 0;
+
+        const show = () => {
+            wrap.textContent = '';
+            if (index >= questions.length) {
+                wrap.append(
+                    h('div', {class: 'aitutor-card-title'}, fmt(S.scoreis, {score, total: questions.length})),
+                    h('button', {type: 'button', class: 'btn btn-sm btn-primary', onclick: () => {
+                        index = 0;
+                        score = 0;
+                        show();
+                    }}, S.restart)
+                );
+                scrollDown();
+                return;
+            }
+            const q = questions[index];
+            const groupName = 'aitutor-q-' + Math.random().toString(36).slice(2);
+            const feedback = h('div', {class: 'aitutor-feedback', hidden: true, 'aria-live': 'polite'});
+            const next = h('button', {type: 'button', class: 'btn btn-sm btn-primary aitutor-next', disabled: true,
+                onclick: () => {
+                    index++;
+                    show();
+                }}, (index === questions.length - 1 ? S.seeresults : S.nextquestion) + (config.rtl ? ' \u2190' : ' \u2192'));
+
+            const options = q.options.map((text, optIdx) => {
+                const input = h('input', {type: 'radio', name: groupName, value: String(optIdx)});
+                const label = h('label', {class: 'aitutor-option'}, [input, h('span', {}, text)]);
+                input.addEventListener('change', () => {
+                    root.querySelectorAll('input[name="' + groupName + '"]').forEach((i) => {
+                        i.disabled = true;
+                    });
+                    const right = optIdx === q.answer;
+                    if (right) {
+                        score++;
+                    }
+                    label.classList.add(right ? 'is-correct' : 'is-wrong');
+                    if (!right) {
+                        wrap.querySelectorAll('.aitutor-option')[q.answer].classList.add('is-correct');
+                    }
+                    feedback.hidden = false;
+                    feedback.append(h('strong', {}, right ? S.correct : S.incorrect));
+                    if (q.explanation) {
+                        feedback.append(' ', h('span', {}, q.explanation));
+                    }
+                    next.disabled = false;
+                    next.focus();
+                    scrollDown();
+                });
+                return label;
+            });
+
+            wrap.append(
+                h('div', {class: 'aitutor-quiz-count'}, fmt(S.questionof, {current: index + 1, total: questions.length})),
+                h('div', {class: 'aitutor-quiz-q'}, q.question),
+                h('div', {class: 'aitutor-options', role: 'radiogroup'}, options),
+                feedback,
+                h('div', {class: 'aitutor-actions'}, next)
+            );
+            scrollDown();
+        };
+        show();
+        return wrap;
+    };
+
+    /**
+     * Renders one stored/returned tutor message.
+     *
+     * @param {Object} msg
+     */
+    const renderTutor = (msg) => {
+        if (msg.type === 'error') {
+            const retry = state.last ? h('button', {type: 'button', class: 'btn btn-sm btn-outline-secondary mt-2',
+                onclick: () => send(state.last.text, state.last.mode, true)}, S.retry) : null;
+            return addRow('tutor', [h('div', {}, msg.content), retry], {error: true, timecreated: msg.timecreated});
+        }
+        if (msg.type === 'text') {
+            return addText('tutor', msg.content, {timecreated: msg.timecreated});
+        }
+        let data;
+        try {
+            data = JSON.parse(msg.content);
+        } catch (e) {
+            return addText('tutor', msg.content, {timecreated: msg.timecreated});
+        }
+        const opts = {wide: true, timecreated: msg.timecreated};
+        switch (msg.type) {
+            case 'studyplan':
+                return addRow('tutor', renderStudyPlan(data), opts);
+            case 'quiz':
+                return addRow('tutor', renderQuiz(data), opts);
+            case 'flashcards':
+                return addRow('tutor', renderFlashcards(data), opts);
+            case 'summary':
+                return addRow('tutor', renderSummary(data, msg), opts);
+            case 'topics':
+                return addRow('tutor', [h('div', {}, S.topics_intro),
+                    chipRow(data.topics.map((text) => ({text})))], opts);
+            default:
+                return addText('tutor', msg.content, {timecreated: msg.timecreated});
+        }
+    };
+
+    // ---- Conversation actions ---------------------------------------------------------------
+
+    const setBusy = (busy) => {
+        state.busy = busy;
+        els.input.disabled = busy;
+        root.querySelectorAll('[data-action="quick"], [data-action="send"]').forEach((b) => {
+            b.disabled = busy;
+        });
+    };
+
+    const refreshRecent = () => call('local_aitutor_get_chats', {
+        courseid: state.courseid,
+        limit: state.allChats ? 30 : (root.querySelector('[data-action="viewall"]') ? 4 : 8),
+    }).then((chats) => {
+        els.recent.textContent = '';
+        if (!chats.length) {
+            els.recent.append(h('li', {class: 'aitutor-recent-empty'}, S.recentchats_empty));
+            return chats;
+        }
+        chats.forEach((chat) => {
+            els.recent.append(h('li', {}, h('button', {type: 'button', class: 'aitutor-recent-item',
+                onclick: () => {
+                    openChat(chat.id);
+                }}, [
+                h('span', {class: 'aitutor-recent-title'}, chat.title),
+                h('span', {class: 'aitutor-recent-time'}, dateLabel(chat.timemodified)),
+            ])));
+        });
+        return chats;
+    }).catch(() => null);
+
+    /**
+     * Sends a message or runs a tutor action.
+     *
+     * @param {string} text Text shown as the user's bubble (and sent as the request).
+     * @param {string} mode chat, assignment, topics, studyplan, quiz, flashcards or summary.
+     * @param {boolean} isRetry Do not add the user bubble again.
+     */
+    const send = (text, mode, isRetry = false) => {
+        if (state.busy) {
+            return;
+        }
+        const effectiveMode = mode === 'chat' ? state.mode : mode;
+        if (!isRetry) {
+            addText('user', text);
+        }
+        state.last = {text, mode};
+        setBusy(true);
+        const thinking = addRow('tutor', h('span', {class: 'aitutor-typing'}, S.thinking), {time: false});
+        call('local_aitutor_send_message', {
+            courseid: state.courseid,
+            chatid: state.chatid,
+            mode: effectiveMode,
+            message: text,
+            cmid: currentCmid(),
+            useresource: els.useResource.checked,
+        }).then((res) => {
+            thinking.remove();
+            if (!state.chatid) {
+                state.chatid = res.chatid;
+                els.title.textContent = res.title;
+            }
+            renderTutor(res.message);
+            return refreshRecent();
+        }).catch((err) => {
+            thinking.remove();
+            renderTutor({type: 'error', content: (err && err.message) || S.error_generic, timecreated: 0});
+        }).then(() => {
+            setBusy(false);
+            els.input.focus();
+            return null;
+        });
+    };
+
+    const defaultChips = () => {
+        const name = subject();
+        return [
+            {text: fmt(S.chip_main, name)},
+            {text: fmt(S.chip_summarize, name), mode: 'summary'},
+            {text: S.chip_project},
+            {text: S.chip_practice, mode: 'quiz'},
+            {text: S.chip_quiz, mode: 'quiz'},
+            {text: S.chip_plan, mode: 'studyplan'},
+            {text: S.chip_takeaways},
+        ];
+    };
+
+    const showWelcome = () => {
+        addRow('tutor', h('span', {}, fmt(S.welcome, state.coursename)));
+        addRow('tutor', [h('div', {class: 'aitutor-hint'}, S.tryasking), chipRow(defaultChips())], {wide: true, time: false});
+    };
+
+    const newChat = () => {
+        state.chatid = 0;
+        state.mode = 'chat';
+        els.title.textContent = S.newchat;
+        els.messages.textContent = '';
+        showWelcome();
+    };
+
+    const openChat = (chatid) => {
+        if (state.busy) {
+            return;
+        }
+        call('local_aitutor_get_chat', {courseid: state.courseid, chatid}).then((chat) => {
+            state.chatid = chat.chatid;
+            state.mode = 'chat';
+            els.title.textContent = chat.title;
+            els.messages.textContent = '';
+            chat.messages.forEach((m) => {
+                if (m.role === 'user') {
+                    addText('user', m.content, {timecreated: m.timecreated});
+                } else {
+                    const res = state.resources.find((r) => r.id === m.cmid);
+                    renderTutor({...m, resourceurl: res ? res.url : '', resourcename: res ? res.name : ''});
+                }
+            });
+            return null;
+        }).catch(() => {
+            return renderTutor({type: 'error', content: S.error_generic, timecreated: 0});
+        });
+    };
+
+    const showResources = () => {
+        if (!state.resources.length) {
+            addText('tutor', S.noresources);
+            return;
+        }
+        const list = h('div', {class: 'aitutor-resource-list'}, state.resources.map((r) => h('button', {
+            type: 'button',
+            class: 'aitutor-resource' + (r.id === currentCmid() ? ' is-active' : ''),
+            title: S.resourcepick,
+            onclick: () => {
+                els.resource.value = String(r.id);
+                syncResourceLabel();
+                addText('tutor', fmt(S.contextchanged, r.name));
+            },
+        }, [h('strong', {}, r.name), h('small', {}, r.section + ' \u00b7 ' + r.modname)])));
+        addRow('tutor', [h('div', {}, S.resourcesintro), list], {wide: true});
+    };
+
+    const navigate = (mode) => {
+        if (state.busy) {
+            return;
+        }
+        root.querySelectorAll('[data-action="nav"]').forEach((b) => {
+            b.classList.toggle('is-active', b.dataset.mode === mode);
+        });
+        switch (mode) {
+            case 'chat':
+                newChat();
+                break;
+            case 'topics':
+                if (currentCmid() && els.useResource.checked) {
+                    send(S.nav_suggestedtopics || '', 'topics');
+                } else {
+                    addRow('tutor', [h('div', {}, S.topics_intro), chipRow(defaultChips())], {wide: true});
+                }
+                break;
+            case 'resources':
+                showResources();
+                break;
+            case 'studyplan':
+                send(S.chip_plan, 'studyplan');
+                break;
+            case 'quiz':
+                send(S.chip_quiz, 'quiz');
+                break;
+            case 'assignment':
+                state.mode = 'assignment';
+                addText('tutor', S.assignmenthelp_intro);
+                els.input.focus();
+                break;
+            case 'revision':
+                state.mode = 'chat';
+                addRow('tutor', [
+                    h('div', {}, S.revision_intro),
+                    h('button', {type: 'button', class: 'btn btn-primary btn-sm mt-2',
+                        onclick: () => send(S.startrevision, 'flashcards')}, S.startrevision),
+                ], {wide: true});
+                break;
+        }
+    };
+
+    // ---- Wiring ----------------------------------------------------------------------------
+
+    els.composer.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const text = els.input.value.trim();
+        if (!text) {
+            return;
+        }
+        els.input.value = '';
+        send(text, 'chat');
+    });
+
+    const toggleResourcePicker = (show) => {
+        els.resource.hidden = !show;
+        if (show) {
+            els.resource.focus();
+        }
+    };
+
+    root.addEventListener('click', (e) => {
+        const target = e.target.closest('[data-action]');
+        if (!target) {
+            return;
+        }
+        const action = target.dataset.action;
+        if (action === 'nav') {
+            navigate(target.dataset.mode);
+        } else if (action === 'change-resource') {
+            toggleResourcePicker(els.resource.hidden);
+        } else if (action === 'toggle-context') {
+            const open = els.contextBody.hidden;
+            els.contextBody.hidden = !open;
+            target.setAttribute('aria-expanded', String(open));
+        } else if (action === 'viewall') {
+            state.allChats = !state.allChats;
+            target.textContent = state.allChats ? S.showless : S.viewall;
+            refreshRecent();
+        } else if (action === 'quick') {
+            const mode = target.dataset.mode;
+            if (mode === 'context') {
+                // "Use lecture context": make the tutor answer from the selected resource.
+                if (!currentCmid()) {
+                    showResources();
+                    return;
+                }
+                els.useResource.checked = true;
+                addText('tutor', fmt(S.contextchanged, currentResource().name));
+                return;
+            }
+            if (mode === 'summary' && !currentCmid()) {
+                addText('tutor', S.pickresourcefirst);
+                return;
+            }
+            send(S['prompt_' + mode] || target.textContent.trim(), mode);
+        }
+    });
+
+    els.resource.addEventListener('change', () => {
+        syncResourceLabel();
+        if (els.resourceName) {
+            els.resource.hidden = true;
+        }
+        const res = currentResource();
+        if (res) {
+            addText('tutor', fmt(S.contextchanged, res.name));
+        }
+    });
+
+    // ---- Course resources (the course is fixed: every course has its own tutor) ---------------
+
+    const resetResources = () => {
+        state.resources = [];
+        while (els.resource.options.length > 1) {
+            els.resource.remove(1);
+        }
+        els.resource.value = '0';
+        syncResourceLabel();
+    };
+
+    const loadResources = () => {
+        resetResources();
+        return call('local_aitutor_get_resources', {courseid: state.courseid}).then((resources) => {
+            state.resources = resources;
+            resources.forEach((r) => {
+                els.resource.append(h('option', {value: String(r.id)}, r.name));
+            });
+            syncResourceLabel();
+            return null;
+        }).catch(() => null);
+    };
+
+    // ---- Initial load -------------------------------------------------------------------------
+    newChat();
+    root.querySelector('[data-mode="chat"]').classList.add('is-active');
+    setBusy(false);
+    loadResources();
+    refreshRecent();
+
+    return {
+        focus: () => els.input.focus(),
+    };
+};
+
+/**
+ * Initialises the full AI Tutor page.
+ *
+ * @param {Object} config {courseid, coursename, strings, rtl}
+ */
+export const init = (config) => {
+    const root = document.querySelector(SELECTORS.root);
+    if (!root) {
+        return;
+    }
+    mount(root, config);
+};
