@@ -31,6 +31,8 @@ defined('MOODLE_INTERNAL') || die();
  * @return bool
  */
 function xmldb_local_aitutor_upgrade($oldversion) {
+    global $DB;
+
     if ($oldversion < 2026102801) {
         // The sidebar panel was removed: every course only has its own AI Tutor tab now.
         unset_config('drawerenabled', 'local_aitutor');
@@ -55,6 +57,28 @@ function xmldb_local_aitutor_upgrade($oldversion) {
             set_config('ragurl', preg_replace('~/query$~i', '', $url), 'local_aitutor');
         }
         upgrade_plugin_savepoint(true, 2026102902, 'local', 'aitutor');
+    }
+    if ($oldversion < 2026111600) {
+        // New per-user hourly question limit: switch it on for existing sites too.
+        if (get_config('local_aitutor', 'maxquestionsperhour') === false) {
+            set_config('maxquestionsperhour', 30, 'local_aitutor');
+        }
+        upgrade_plugin_savepoint(true, 2026111600, 'local', 'aitutor');
+    }
+    if ($oldversion < 2026111601) {
+        // Chat memory: each chat keeps a running summary of its older messages.
+        $dbman = $DB->get_manager();
+        $table = new xmldb_table('local_aitutor_chat');
+        $fields = [
+            new xmldb_field('summary', XMLDB_TYPE_TEXT, null, null, null, null, null, 'timemodified'),
+            new xmldb_field('summarizedupto', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'summary'),
+        ];
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+        upgrade_plugin_savepoint(true, 2026111601, 'local', 'aitutor');
     }
     return true;
 }

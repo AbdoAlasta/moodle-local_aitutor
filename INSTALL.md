@@ -49,14 +49,15 @@ Then purge the caches (*Site administration > Development > Purge caches*).
 | RAG timeout | Seconds to wait for an answer (default 60) |
 | Demo mode | Canned replies for trying the interface without a service. Leave off on a real site |
 
-## 4. Allow Moodle to reach a local service
+## 4. Moodle HTTP security: nothing to change
 
-AI Tutor uses Moodle's curl wrapper, which by default blocks `localhost` / private addresses and non-standard ports.
-If the service runs on the same machine or an internal network, go to
-*Site administration > General > Security > HTTP security* and:
+Since version 0.8.1, AI Tutor reaches the service even when it runs on `localhost`, a private address or a
+non-standard port. The service URL can only be set by an administrator, so the plugin skips Moodle's
+*cURL blocked hosts / allowed ports* check for that one URL.
 
-- remove `127.0.0.0/8` and `localhost` (or the service's address) from **cURL blocked hosts list**;
-- add the service port (e.g. `8003`) to **cURL allowed ports list**, or leave that list empty.
+**Keep `127.0.0.0/8` and `localhost` in *Site administration > General > Security > HTTP security >
+cURL blocked hosts list*.** Removing them, as older versions of these instructions said, lets every Moodle feature
+that fetches a URL (RSS feeds, URL downloads...) reach services on the Moodle server itself.
 
 ## 5. Test the connection
 

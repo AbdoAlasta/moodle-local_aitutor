@@ -53,6 +53,10 @@ if ($hassiteconfig) {
         get_string('setting_ragtimeout', 'local_aitutor'), get_string('setting_ragtimeout_desc', 'local_aitutor'),
         60, PARAM_INT));
 
+    $settings->add(new admin_setting_configtext('local_aitutor/maxquestionsperhour',
+        get_string('setting_maxquestionsperhour', 'local_aitutor'),
+        get_string('setting_maxquestionsperhour_desc', 'local_aitutor'), 30, PARAM_INT));
+
     $settings->add(new admin_setting_configcheckbox('local_aitutor/demomode',
         get_string('setting_demo', 'local_aitutor'), get_string('setting_demo_desc', 'local_aitutor'), 0));
 }

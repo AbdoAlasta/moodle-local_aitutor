@@ -30,8 +30,18 @@ class tutor {
     /** @var string[] All supported modes. */
     public const MODES = ['chat', 'assignment', 'topics', 'studyplan', 'quiz', 'flashcards', 'summary'];
 
-    /** @var int Earlier question/answer pairs of the chat sent with a question, to understand follow-ups. */
-    private const HISTORY_TURNS = 3;
+    /** @var int Pairs kept word for word after older ones are folded into the summary. */
+    private const RECENT_TURNS = 4;
+
+    /** @var int When this many pairs are not yet in the summary, all but the last RECENT_TURNS are folded into it. So a
+     * question carries the summary plus every pair not in it yet (4 to 7), and nothing falls between the two. */
+    private const FOLD_AT = 8;
+
+    /** @var int Most pairs sent with a question (the service accepts 10); only reached when folding keeps failing. */
+    private const MAX_HISTORY = 10;
+
+    /** @var int Most pairs sent in one /summarize call (older chats from before the summary existed). */
+    private const FOLD_MAX = 20;
 
     /** @var int Longest earlier answer sent as history (characters). */
     private const HISTORY_ANSWER_CHARS = 500;
@@ -66,6 +76,11 @@ class tutor {
             int $cmid, bool $useresource): array {
         global $DB;
 
+        // Before anything is stored: a refused request leaves no half-written chat behind.
+        if (rag_client::is_configured()) {
+            self::check_rate_limit((int) $user->id);
+        }
+
         $context = \context_course::instance($course->id);
         $now = time();
         $message = trim($message);
@@ -94,8 +109,9 @@ class tutor {
         // Selected resource: only its name is used, to steer the service's search towards it.
         $resource = ($cmid > 0 && $useresource) ? resources::get_info($course, $cmid) : null;
 
-        // Earlier exchanges of this chat, so the service understands follow-ups such as "explain more".
-        $history = self::load_history($chat->id, self::HISTORY_TURNS);
+        // Chat memory: a running summary of the older messages plus the most recent exchanges, so the service
+        // understands follow-ups ("explain more") and questions about the whole chat ("what did I ask first?").
+        [$summary, $history] = self::chat_memory($chat);
 
         // Store the user message.
         $DB->insert_record('local_aitutor_msg', (object) [
@@ -111,7 +127,7 @@ class tutor {
         if (rag_client::is_configured()) {
             try {
                 $res = rag_client::query((int) $course->id, self::build_question($message, $resource), $history,
-                    self::mode_instructions($mode));
+                    self::mode_instructions($mode), $summary);
                 $raw = $res['answer'];
                 $references = $res['references'];
                 $rewritten = $res['rewritten'];
@@ -161,6 +177,31 @@ class tutor {
     }
 
     /**
+     * Counts one RAG request for the user and refuses it when the hourly limit is reached (setting
+     * maxquestionsperhour, 0 = no limit). The limit is per user across all courses, because every request costs
+     * model calls on the same service.
+     *
+     * @param int $userid
+     * @throws \moodle_exception error_ratelimited
+     */
+    public static function check_rate_limit(int $userid): void {
+        $limit = (int) get_config('local_aitutor', 'maxquestionsperhour');
+        if ($limit <= 0) {
+            return;
+        }
+        $cache = \cache::make('local_aitutor', 'ratelimit');
+        $key = 'u' . $userid;
+        $now = time();
+        $recent = array_values(array_filter(json_decode((string) $cache->get($key), true) ?: [],
+            fn($t) => $t > $now - HOURSECS));
+        if (count($recent) >= $limit) {
+            throw new \moodle_exception('error_ratelimited', 'local_aitutor', '', $limit);
+        }
+        $recent[] = $now;
+        $cache->set($key, json_encode($recent));
+    }
+
+    /**
      * The question sent to the RAG service: what it searches with (and rewrites when it is a follow-up). The mode's
      * instructions travel separately, so they never dilute the search.
      *
@@ -173,32 +214,69 @@ class tutor {
     }
 
     /**
-     * The last plain-text exchanges of a chat, oldest first, as the service expects them.
+     * The memory sent with a question: the chat's running summary and its most recent exchanges. When enough
+     * exchanges have built up outside the summary, the older ones are folded into it first (one small /summarize
+     * call every few questions). If that call fails the chat still works, with the summary it already had.
+     *
+     * @param \stdClass $chat Chat record (summary, summarizedupto).
+     * @return array [string $summary, array[] $history] history: [['question' => ..., 'answer' => ...]], oldest first
+     */
+    private static function chat_memory(\stdClass $chat): array {
+        global $DB;
+        $summary = trim((string) ($chat->summary ?? ''));
+        $pairs = self::load_pairs((int) $chat->id, (int) ($chat->summarizedupto ?? 0));
+
+        if (count($pairs) >= self::FOLD_AT && rag_client::is_configured()) {
+            $old = array_slice($pairs, 0, -self::RECENT_TURNS);
+            try {
+                $summary = rag_client::summarize($summary, array_map(fn($p) => ['question' => $p['question'],
+                    'answer' => $p['answer']], array_slice($old, -self::FOLD_MAX)));
+                $DB->update_record('local_aitutor_chat', (object) ['id' => $chat->id, 'summary' => $summary,
+                    'summarizedupto' => end($old)['id']]);
+                $pairs = array_slice($pairs, -self::RECENT_TURNS);
+            } catch (\moodle_exception $e) {
+                debugging('local_aitutor: could not update the chat summary: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            }
+        }
+        // Every pair that is not in the summary yet, so nothing is lost between two folds.
+        $recent = array_map(fn($p) => ['question' => $p['question'], 'answer' => $p['answer']],
+            array_slice($pairs, -self::MAX_HISTORY));
+        return [$summary, $recent];
+    }
+
+    /**
+     * The exchanges of a chat after a message id, oldest first. Each answer is cut down to what the model needs: the
+     * plugin's "Understood as" and Sources lines and the [n] citation markers are removed. Structured replies (quiz,
+     * flashcards...) are kept as a one-line note so the memory knows they happened; errors are left out.
      *
      * @param int $chatid
-     * @param int $turns Maximum number of question/answer pairs.
-     * @return array[] [['question' => string, 'answer' => string]]
+     * @param int $afterid Only messages with a larger id (0 for the whole chat).
+     * @return array[] [['question' => string, 'answer' => string, 'id' => int (id of the answer message)]]
      */
-    private static function load_history(int $chatid, int $turns): array {
+    private static function load_pairs(int $chatid, int $afterid): array {
         global $DB;
-        $rows = array_reverse($DB->get_records('local_aitutor_msg', ['chatid' => $chatid], 'id DESC',
-            'id, role, type, content', 0, $turns * 4));
+        $rows = array_reverse($DB->get_records_select('local_aitutor_msg', 'chatid = ? AND id > ?', [$chatid, $afterid],
+            'id DESC', 'id, role, type, content', 0, 200));
         $pairs = [];
         $question = null;
         foreach ($rows as $row) {
             if ($row->role === 'user') {
                 $question = $row->content;
-            } else if ($question !== null && $row->type === 'text') {
-                // Only the answer itself: drop the "Understood as" and Sources lines added by this plugin.
+                continue;
+            }
+            if ($question !== null && $row->type === 'text') {
                 $answer = preg_split('/\n\n\*(?:\*' . preg_quote(get_string('sources', 'local_aitutor'), '/') . '\*\*|'
                     . preg_quote(get_string('understoodas', 'local_aitutor', ''), '/') . ')/u', $row->content)[0];
-                $pairs[] = ['question' => $question, 'answer' => shorten_text(trim($answer), self::HISTORY_ANSWER_CHARS)];
-                $question = null;
-            } else {
-                $question = null; // Structured replies (quiz, flashcards...) and errors are not conversation.
+                $answer = preg_replace('/\s*\[\d+(?:\s*,\s*\d+)*\]/u', '', $answer);
+                $pairs[] = ['question' => $question, 'answer' => shorten_text(trim($answer), self::HISTORY_ANSWER_CHARS),
+                    'id' => (int) $row->id];
+            } else if ($question !== null && in_array($row->type, self::STRUCTURED, true)) {
+                $what = $row->type === 'studyplan' ? 'study plan' : $row->type;
+                $pairs[] = ['question' => $question, 'answer' => "(The tutor replied with a {$what}.)", 'id' => (int) $row->id];
             }
+            $question = null; // Errors are not conversation.
         }
-        return array_slice($pairs, -$turns);
+        return $pairs;
     }
 
     /**

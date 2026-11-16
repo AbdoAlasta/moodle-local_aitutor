@@ -82,8 +82,11 @@ class rag_client {
         }
         $options = ['CURLOPT_TIMEOUT' => $timeout, 'CURLOPT_CONNECTTIMEOUT' => 10];
 
-        // Moodle's curl wrapper applies the site proxy and the "cURL blocked hosts" security settings.
-        $curl = new \curl();
+        // The URL can only be set by a site administrator, so Moodle's "cURL blocked hosts / allowed ports" check is
+        // skipped for it. That lets the service run on localhost without removing localhost from the blocked list,
+        // which would let every other Moodle feature that fetches URLs reach this server's local services.
+        // The site proxy settings still apply.
+        $curl = new \curl(['ignoresecurity' => true]);
         if ($method === 'POST') {
             $headers[] = 'Content-Type: application/json';
             $curl->setHeader($headers);
@@ -108,10 +111,11 @@ class rag_client {
      * @param string $question What the service searches with.
      * @param array[] $history Earlier exchanges of the chat, oldest first: [['question' => ..., 'answer' => ...]].
      * @param string $instructions Answer format for the action; not used for the search.
+     * @param string $summary Running summary of the older part of the chat.
      * @return array
      */
     public static function query_payload(int $courseid, string $question, array $history = [],
-            string $instructions = ''): array {
+            string $instructions = '', string $summary = ''): array {
         $payload = ['question' => $question, 'course_id' => (string) $courseid];
         if ($history) {
             $payload['history'] = $history;
@@ -119,7 +123,29 @@ class rag_client {
         if ($instructions !== '') {
             $payload['instructions'] = $instructions;
         }
+        if ($summary !== '') {
+            $payload['summary'] = $summary;
+        }
         return $payload;
+    }
+
+    /**
+     * Folds older exchanges of a chat into its running summary (POST /summarize).
+     *
+     * @param string $summary The summary so far ('' for none).
+     * @param array[] $turns [['question' => ..., 'answer' => ...]], oldest first.
+     * @return string The updated summary.
+     * @throws \moodle_exception When the service cannot be reached or answers with an error.
+     */
+    public static function summarize(string $summary, array $turns): string {
+        $res = self::request('POST', '/summarize', ['summary' => $summary, 'turns' => array_values($turns)]);
+        $data = json_decode($res['body'], true);
+        if ($res['error'] !== '' || $res['status'] < 200 || $res['status'] >= 300 || !is_string($data['summary'] ?? null)) {
+            debugging('local_aitutor: RAG summarize failed (HTTP ' . $res['status'] . '): '
+                . ($res['error'] ?: shorten_text($res['body'], 300)), DEBUG_DEVELOPER);
+            throw new \moodle_exception('error_rag', 'local_aitutor');
+        }
+        return trim($data['summary']);
     }
 
     /**
@@ -129,11 +155,14 @@ class rag_client {
      * @param string $question
      * @param array[] $history See query_payload().
      * @param string $instructions See query_payload().
+     * @param string $summary See query_payload().
      * @return array ['answer' => string, 'references' => array[], 'rewritten' => string]
      * @throws \moodle_exception When the service cannot be reached or answers with an error.
      */
-    public static function query(int $courseid, string $question, array $history = [], string $instructions = ''): array {
-        $res = self::request('POST', '/query', self::query_payload($courseid, $question, $history, $instructions));
+    public static function query(int $courseid, string $question, array $history = [], string $instructions = '',
+            string $summary = ''): array {
+        $res = self::request('POST', '/query',
+            self::query_payload($courseid, $question, $history, $instructions, $summary));
 
         if ($res['error'] !== '' || $res['status'] < 200 || $res['status'] >= 300) {
             // Details are for the administrator (debugging), the student only sees a generic message.

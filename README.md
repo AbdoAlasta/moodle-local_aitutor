@@ -1,97 +1,119 @@
-# AI Tutor (local_aitutor) — Moodle 5.2
+# AI Tutor (local_aitutor) for Moodle 5.2
 
-**English installation guide: [INSTALL.md](INSTALL.md)**
+An **AI Tutor** tab inside every course, next to Course / Participants / Grades. It contains:
 
-تبويب **AI Tutor** داخل كل مقرر (بجانب Course / Participants / Grades ...) فيه:
-شات مع مساعد ذكي، قائمة جانبية (New Chat, Suggested Topics, Course Resources, Study Plan, Practice Quiz,
-Assignments Help, Revision Mode)، لوحة Course Context لاختيار المورد، Quick Actions، و Recent Chats.
+- a chat with a course tutor that answers **only from that course's files** and cites its sources;
+- a side menu: New Chat, Suggested Topics, Course Resources, Study Plan, Practice Quiz, Assignments Help, Revision Mode;
+- a **Course Context** card for picking a resource, **Quick Actions** (lecture context, summary, flashcards, MCQs),
+  and **Recent Chats**.
 
-## التثبيت
-1. انسخ المجلد `aitutor` إلى:  `moodle/public/local/aitutor`   (Moodle 5.1+ يستخدم مجلد `public`)
-2. افتح الموقع كمدير: *Site administration > Notifications* ثم أكمل التحديث.
-3. اضبط خدمة الـ RAG من: *Site administration > Plugins > Local plugins > AI Tutor* ← **Course RAG service**
-   (العنوان الأساسي للخدمة مثل `http://127.0.0.1:8003` ومفتاح `SERVICE_API_KEY`)، ثم اضغط **Test the connection** للتأكد.
-   استخدم نفس الخدمة التي تفهرس فيها إضافة `local_ragindex` ملفات المقررات.
-   **لا حاجة لأي AI Provider في Moodle.**
-4. افتح أي مقرر ← تبويب **AI Tutor** (قد يظهر تحت "More" إذا كان الشريط ممتلئاً).
-   - **Demo mode**: ردود جاهزة لتجربة الواجهة بدون خدمة RAG (لا تفعّله على موقع حقيقي).
+Answers come from the [native-rag-gemini](https://github.com/AbdoAlasta/native-rag-gemini) service, which searches the
+course files indexed by [local_ragindex](https://github.com/AbdoAlasta/moodle-local_ragindex). Moodle's own AI
+providers are not used.
 
-## كيف يعمل
-- كل سؤال يُرسل إلى `POST /query` في خدمة RAG الخاصة بك بالشكل `{"question", "course_id"}` (انظر `RAG_API.md`) لتبحث في ملفات المقرر المفهرسة فقط. لا يُستخدم نظام Moodle AI إطلاقاً.
-- المورد المحدد يُضاف اسمه إلى السؤال لتوجيه البحث، والمصادر المستشهد بها تظهر تحت الإجابة.
-- الكويز / البطاقات / خطة المذاكرة / الملخص تُطلب بصيغة JSON وتُتحقق قبل العرض (وإن لم تلتزم الخدمة بالصيغة يُعرض الرد كنص عادي).
-- الصلاحية: `local/aitutor:use` (طالب، معلم، مدير افتراضياً). المحادثات تُخزّن لكل مستخدم ويدعم الـ Privacy API.
+**Installation: see [INSTALL.md](INSTALL.md).** The service request and response format is in [RAG_API.md](RAG_API.md).
 
-## الإصدار 0.2.0 — زر الشريط الجانبي واختيار المادة
-- **زر في الشريط الجانبي** يفتح لوحة AI Tutor فوق الصفحة الحالية (overlay) من أي صفحة في الموقع، ويغلقها زر الإغلاق أو `Esc`.
-  فتح اللوحة وإغلاقها لا يعيد تحميل الصفحة ولا يغيّر محتواها، والمحادثة تبقى كما هي عند إعادة الفتح.
-- ~~اختيار المادة داخل الـ AI~~ (ملغى في 0.3.0: لكل مادة الآن شات خاص بها، انظر أدناه).
-- بما أن Moodle يعيد تحميل الصفحة عند التنقل، تُحفظ حالة اللوحة (مفتوحة/مغلقة، المادة، المحادثة، المورد) في المتصفح وتُستعاد تلقائياً في الصفحة التالية.
-- الإعدادات الجديدة: *Site administration > Plugins > Local plugins > AI Tutor* ← **Sidebar button and panel** (تفعيل/تعطيل) و **Button location**
-  (في الشريط الجانبي مع زر عائم احتياطي، أو زر عائم فقط).
-- بعد نسخ الملفات افتح *Site administration > Notifications* لإكمال الترقية ثم نفّذ *Purge all caches*.
+## How it works
 
-## الإصدار 0.2.1 — عنصر "AI Tutor" في قائمة الشريط الجانبي
-- يُضاف عنصر **AI Tutor** إلى قائمة التنقل الرئيسية (الشريط الجانبي الأيسر، بعد Dashboard) عبر `primary_extend`، والضغط عليه يفتح اللوحة بدل التنقل لصفحة جديدة.
-- إن لم يظهر العنصر يظهر زر عائم تلقائياً. اختيار **Floating button only** في الإعدادات يُلغي العنصر ويُبقي الزر العائم.
+- Each question goes to `POST /query` of the RAG service with the course id, so it searches only that course's files.
+- A selected resource adds its name to the question to steer the search. Cited sources are listed under each answer.
+- Quiz, flashcards, study plan, summary and topics ask for JSON and validate it before display. If the service does
+  not follow the format, the reply is shown as plain text.
+- Each chat remembers the whole conversation: a running summary of older messages plus the latest exchanges.
+- Each user can ask a limited number of questions per hour (30 by default).
+- Capability `local/aitutor:use` (student, teacher, manager by default). Chats are stored per user and course, and
+  the Privacy API exports and deletes them.
 
-## الإصدار 0.2.2 — ملء الشاشة
-- زر في رأس اللوحة يحوّل المحادثة إلى ملء الشاشة (وزر للعودة للوضع الجانبي)، ويُحفظ اختيار الطالب في المتصفح.
+## Changelog
 
-## الإصدار 0.3.0 — شات خاص بكل مادة (مطابق لتصميم Full-Page AI Tutor Tab)
-- **لكل مادة معلّم ذكي خاص بها**: المحادثات والموارد والسياق كلها مرتبطة بالمادة الحالية فقط، ولا توجد قائمة لاختيار مادة أخرى.
-  اسم المادة يظهر ثابتاً في بطاقة **Course Context**، ورسالة الترحيب والاقتراحات (Try asking) تُبنى باسم المادة.
-- **لوحة الشريط الجانبي** صارت مرتبطة بالمادة أيضاً: يظهر زر/عنصر AI Tutor **داخل صفحات المادة فقط** (وليس في الصفحة الرئيسية أو الـ Dashboard)،
-  ويفتح شات هذه المادة. حالة اللوحة (مفتوحة/مغلقة، المحادثة، المورد) تُحفظ لكل مادة على حدة.
-- **بطاقة Course Context** كما في التصميم: اسم المادة، **Selected resource** مع رابط **Change**، وخانة **Use this context** (قابلة للطي).
-- **Quick Actions** (٤ أزرار بأيقونات): Use lecture context، Summarize resource، Create flashcards، Generate MCQs.
-- **Recent Chats** بالوقت/«Yesterday»/التاريخ، مع رابط **View all** لعرض كل محادثات هذه المادة.
-- اقتراح جديد في Try asking: *Help me with the project ideas*.
-- حُذفت دالة الـ Web Service `local_aitutor_get_courses` (لم تعد لازمة). بعد نسخ الملفات افتح *Site administration > Notifications* ثم *Purge all caches*.
-- الأمان لم يتغيّر: كل الدوال تتحقق من صلاحية `local/aitutor:use` في سياق المادة، والمحادثة تُجلب بشرط أن تخص المستخدم والمادة نفسها.
+### 0.8.1: no need to open localhost in Moodle
+- Reaching the RAG service no longer requires removing `127.0.0.0/8` and `localhost` from *cURL blocked hosts list*:
+  the plugin skips that check for the service URL only, because only an administrator can set it.
+  **Put `127.0.0.0/8` and `localhost` back in the list**, so other Moodle features that fetch URLs cannot reach
+  services on the server itself.
 
-## الإصدار 0.3.1 — حذف الشات الخارجي نهائياً
-- حُذفت اللوحة الجانبية وزرّها وعنصر القائمة الجانبية (`drawer.js` وقالبه وإعداداتهما). الوصول للمعلّم الذكي صار فقط من تبويب **AI Tutor** داخل كل مادة.
-- أضيف `db/upgrade.php` يمسح الإعدادين القديمين (`drawerenabled` و`drawerbutton`). بعد نسخ الملفات: *Notifications* ثم *Purge all caches*.
+### 0.8.0: memory for the whole chat
+- The tutor remembers **the whole chat** instead of only the last 3 questions. Each chat keeps a **running summary**
+  stored with it in Moodle. Every question sends the summary plus the exchanges not yet in it (4 to 7), word for word,
+  so questions like "what did I ask at the start?" work in long chats.
+- When 8 exchanges are outside the summary, the oldest are folded into it with one small `POST /summarize` call
+  (about once every 4 questions), so the memory size stays roughly constant. If that call fails, the chat continues
+  with the previous summary.
+- Fewer tokens: `[1]` citation markers are removed from the memory, and the question rewrite step only sees the
+  summary and the last 2 exchanges.
+- Quizzes, flashcards and plans appear in the memory as a one-line note instead of being ignored.
+- Needs the updated `native_rag_gemini` (`summary` field and `/summarize`).
 
-## الإصدار 0.4.0 — الاتصال المباشر بخدمة RAG
-- إعدادات جديدة: *Site administration > Plugins > Local plugins > AI Tutor* ← **Course RAG service** (عنوان الخدمة، مفتاح API اختياري، مهلة الانتظار).
-- عند تحديد العنوان تذهب **كل** الطلبات إلى خدمة RAG بدلاً من Moodle AI، ويُرسل معها `course_id` لتبحث الخدمة في بيانات هذه المادة فقط. (تغيّر في 0.5.0: لم يعد Moodle AI بديلاً احتياطياً.)
-- شكل الطلب والرد في `RAG_API.md` (يمكن تسليمه لفريق الـ backend). الصيغ المقبولة للرد: `answer` أو `response` أو `text` أو `content` أو `choices[0].message.content`.
-- ملاحظة: إن كانت الخدمة على نفس الجهاز (localhost) أو شبكة داخلية فاسمح بها من *Site administration > General > Security > HTTP security* وإلا يحجبها Moodle.
-- تحديث الـ Privacy API: ذُكرت خدمة RAG كجهة خارجية تُرسل لها البيانات.
+### 0.7.1: questions per user per hour
+- New setting **Questions per user per hour** (default 30). Each question or action calls the RAG service and uses
+  Gemini, so a student who reaches the limit is asked to wait. 0 means no limit. The limit counts across all courses.
+- Works with the updated `native_rag_gemini`, which answers off-topic questions without calling Gemini and retries
+  Gemini on temporary errors.
 
-## الإصدار 0.5.0 — RAG فقط، بدون Moodle AI Provider
-- **حُذف الاعتماد على `core_ai` نهائياً**: لم يعد هناك أي استدعاء لمزوّدات Moodle AI، ولا رسالة "No AI provider". إن لم يُحدَّد عنوان RAG تظهر رسالة "الخدمة غير مُعدّة" (أو ردود Demo إن فُعّل).
-- **خيارات مطابقة خدمتك** (في *Course RAG service*):
-  - **Auth header name**: `Authorization` (يُرسل `Bearer <key>`) أو أي ترويسة أخرى مثل `X-API-Key` (يُرسل المفتاح كما هو).
-  - **Request format**: *Full* (كل الحقول في `RAG_API.md`) أو *Minimal* (`question, course_id, chat_id, user_id, history` فقط) للخدمات التي ترفض الحقول غير المعروفة أو تبني الـ prompt بنفسها.
-  - **Question field name**: اسم حقل السؤال إن كان غير `question` (مثل `query` أو `input`).
-  - **Response field**: مسار الإجابة في الرد، مثل `data.answer`. اتركه فارغاً للكشف التلقائي.
-- **صفحة اختبار الاتصال** (`Test the connection`): ترسل سؤالاً تجريبياً وتعرض الطلب المُرسل ورمز الحالة والرد الخام والإجابة كما ستظهر للطالب. تفيد في كشف مشاكل localhost/الجدار الناري/الصيغة.
-- ملاحظة للوضع **Minimal**: أوضاع الكويز والبطاقات والخطة والملخص تحتاج أن تُرجع خدمتك JSON بالصيغة الموثّقة في `RAG_API.md`، وإلا يُعرض الرد كنص عادي.
-- بعد نسخ الملفات: *Site administration > Notifications* ثم *Purge all caches*.
+### 0.7.0: short chat memory and a scrolling chat area
+- With each question, the last 3 questions and answers of the chat are sent as `history`. The service rewrites a
+  follow-up such as "explain more" into a standalone question before searching, and the answer shows
+  *Understood as: ...*. New Chat starts without memory.
+- The instructions of the action buttons (quiz, flashcards, plan, summary, topics, assignment help) go in a separate
+  `instructions` field and are not used for the search.
+- The chat box is sized to the window: messages scroll inside it and the input stays visible. On phones the layout
+  stays stacked.
 
-## الإصدار 0.6.0 — مطابقة خدمات RAG الخاصة بنا (مجلد `RAGS`)
-- الطلب صار مطابقاً لواجهة الخدمات: `POST <url>/query` بالجسم `{"question": "...", "course_id": "2"}` وترويسة `X-API-Key`.
-  رقم المقرر يُرسل **كنص** (كان رقماً فترفضه الخدمة بخطأ 422)، وهو نفس الرقم الذي تفهرس به `local_ragindex` الملفات.
-- لم يعد يُرسل `mode` (كانت قيمته `chat` غير صالحة في LightRAG) ولا `prompt` ولا المحادثة السابقة ولا نص المورد.
-- **عنوان الخدمة** صار العنوان الأساسي (مثل `http://127.0.0.1:8003`) والإضافة تضيف `/query` بنفسها. حُذفت الإعدادات التي لم تعد لازمة:
-  Auth header name، Request format، Question field name، Response field، Extra instructions، Maximum context characters،
-  Conversation turns remembered، Path to pdftotext (يمسحها `db/upgrade.php`).
-- أزرار الكويز والبطاقات والخطة والملخص والمواضيع تضيف صيغة JSON المطلوبة إلى نص السؤال، لأن الخدمة تبني الـ prompt بنفسها.
-  إن لم يلتزم Gemini بالصيغة يُعرض الرد كنص عادي.
-- **المصادر**: تحت كل إجابة نصية قائمة بالملفات المستشهد بها (`[1] lecture1.pdf، صفحة 3`).
-- صفحة **Test the connection** تفحص `GET /health` ثم ترسل سؤالاً حقيقياً إلى `/query`.
-- قيود: لا ذاكرة للمحادثة (كل سؤال مستقل)، والإجابات تأتي فقط من الملفات المفهرسة (PDF/PPTX/TXT/MD) وليس من Page/Book/Label.
-- بعد نسخ الملفات: *Site administration > Notifications* ثم *Purge all caches*.
+### 0.6.0: matching our RAG services (`RAGS` folder)
+- Requests now match the services' API: `POST <url>/query` with `{"question": "...", "course_id": "2"}` and the
+  `X-API-Key` header. The course id is sent **as a string** (a number was rejected with 422); it is the same id
+  `local_ragindex` indexes the files under.
+- `mode`, `prompt`, the previous conversation and the resource text are no longer sent.
+- The service URL is now the base URL (e.g. `http://127.0.0.1:8003`); the plugin adds `/query`. Settings that were no
+  longer needed were removed by `db/upgrade.php`: auth header name, request format, question field name, response
+  field, extra instructions, maximum context characters, conversation turns remembered, path to pdftotext.
+- Quiz, flashcards, plan, summary and topics buttons add the required JSON format to the request.
+- **Sources**: under each text answer, a list of the cited files (`[1] lecture1.pdf, page 3`).
+- **Test the connection** checks `GET /health`, then sends a real question to `/query`.
 
-## الإصدار 0.7.0 — ذاكرة المحادثة ومنطقة شات قابلة للتمرير
-- **ذاكرة قصيرة** كما في بوت Discord: مع كل سؤال تُرسل آخر 3 أسئلة وإجابات من نفس المحادثة (`history`)، فتعيد الخدمة
-  صياغة الأسئلة التابعة مثل "explain more" إلى سؤال مستقل قبل البحث، ويظهر تحت الإجابة *Understood as: ...*.
-  "New Chat" يبدأ بدون ذاكرة. المحادثات نفسها محفوظة كما كانت في **Recent Chats**.
-- تعليمات الأزرار (الكويز، البطاقات، الخطة، الملخص، المواضيع، مساعدة الواجب) تُرسل في حقل منفصل `instructions` ولا تدخل في البحث.
-- يتطلب هذا نسخة `native_rag_gemini` المحدّثة (حقلا `history` و`instructions`، وإعادة الصياغة، واحتساب الاستشهادات مثل `[1, 2]` في المصادر).
-- **التمرير داخل الشات فقط**: ارتفاع صندوق المحادثة يُضبط على ارتفاع النافذة، فتتحرك الرسائل داخل الصندوق وتبقى خانة الكتابة ظاهرة،
-  والعمود الأيمن يتمرّر وحده على الشاشات الكبيرة. على الجوال يبقى الترتيب العمودي كما هو.
-- بعد نسخ الملفات: *Site administration > Notifications* ثم *Purge all caches*.
+### 0.5.0: RAG only, no Moodle AI provider
+- The dependency on `core_ai` was removed. Without a RAG URL the tutor shows "service not configured" (or demo
+  replies if demo mode is on).
+- Options to match other services: auth header name, request format (full or minimal), question field name and
+  response field path (removed again in 0.6.0).
+- New **Test the connection** page: sends a sample question and shows the request, status code, raw response and the
+  answer as the student would see it.
+
+### 0.4.0: direct connection to the RAG service
+- New settings under **Course RAG service**: service URL, optional API key, timeout.
+- With a URL set, all requests go to the RAG service with the `course_id`, so it searches only that course's data.
+- Request and response format documented in `RAG_API.md`.
+- Privacy API: the RAG service is declared as an external location that receives data.
+
+### 0.3.1: the sidebar chat was removed
+- The sidebar panel, its button and its menu item were removed (`drawer.js`, its template and settings). The tutor is
+  only reached from the **AI Tutor** tab of each course. `db/upgrade.php` removes the old `drawerenabled` and
+  `drawerbutton` settings.
+
+### 0.3.0: one tutor per course
+- **Every course has its own tutor**: chats, resources and context belong to the current course only; there is no
+  course picker. The course name is shown in the **Course Context** card, and the welcome message and suggestions
+  use it.
+- **Course Context** card: course name, **Selected resource** with a **Change** link, and a collapsible
+  **Use this context** option.
+- **Quick Actions** (4 buttons): Use lecture context, Summarize resource, Create flashcards, Generate MCQs.
+- **Recent Chats** show the time, "Yesterday" or the date, with **View all** for every chat of the course.
+- New suggestion: *Help me with the project ideas*.
+- The web service `local_aitutor_get_courses` was removed. All functions still check `local/aitutor:use` in the
+  course context, and a chat is only returned to its own user in its own course.
+
+### 0.2.2: full screen
+- A header button switches the chat to full screen and back; the choice is remembered in the browser.
+
+### 0.2.1: "AI Tutor" item in the sidebar menu
+- An **AI Tutor** item in the main navigation (after Dashboard) opened the panel instead of a new page, with a
+  floating button as a fallback.
+
+### 0.2.0: sidebar button and course choice
+- A sidebar button opened the AI Tutor panel over any page, closed with the close button or `Esc`, keeping its state
+  between pages. (Removed in 0.3.1.)
+
+### Upgrading
+
+After copying new files, open *Site administration > Notifications* to finish the upgrade, then
+*Purge all caches*.
