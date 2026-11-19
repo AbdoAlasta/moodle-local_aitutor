@@ -39,11 +39,12 @@ class send_message extends external_api {
         return new external_function_parameters([
             'courseid' => new external_value(PARAM_INT, 'Course id'),
             'chatid' => new external_value(PARAM_INT, 'Chat id, 0 to start a new chat', VALUE_DEFAULT, 0),
-            'mode' => new external_value(PARAM_ALPHA, 'chat, assignment, topics, studyplan, quiz, flashcards or summary',
-                VALUE_DEFAULT, 'chat'),
+            'mode' => new external_value(PARAM_ALPHA,
+                'chat, assignment, topics, studyplan, quiz, flashcards, summary, anotherhint or reveal', VALUE_DEFAULT, 'chat'),
             'message' => new external_value(PARAM_RAW, 'Student message (may be empty for action modes)', VALUE_DEFAULT, ''),
             'cmid' => new external_value(PARAM_INT, 'Selected resource (course module id), 0 for none', VALUE_DEFAULT, 0),
             'useresource' => new external_value(PARAM_BOOL, 'Use the selected resource as context', VALUE_DEFAULT, true),
+            'hintmode' => new external_value(PARAM_BOOL, 'Whether the hint mode toggle is on', VALUE_DEFAULT, false),
         ]);
     }
 
@@ -56,15 +57,16 @@ class send_message extends external_api {
      * @param string $message
      * @param int $cmid
      * @param bool $useresource
+     * @param bool $hintmode
      * @return array
      */
     public static function execute(int $courseid, int $chatid = 0, string $mode = 'chat', string $message = '',
-            int $cmid = 0, bool $useresource = true): array {
+            int $cmid = 0, bool $useresource = true, bool $hintmode = false): array {
         global $USER;
 
         $params = self::validate_parameters(self::execute_parameters(), [
             'courseid' => $courseid, 'chatid' => $chatid, 'mode' => $mode, 'message' => $message,
-            'cmid' => $cmid, 'useresource' => $useresource,
+            'cmid' => $cmid, 'useresource' => $useresource, 'hintmode' => $hintmode,
         ]);
 
         if (!get_config('local_aitutor', 'enabled')) {
@@ -79,7 +81,7 @@ class send_message extends external_api {
         \core_php_time_limit::raise(max(120, ((int) get_config('local_aitutor', 'ragtimeout') ?: 60) + 30));
 
         $result = tutor::handle($course, $USER, $params['chatid'], $params['mode'], $params['message'],
-            $params['cmid'], $params['useresource']);
+            $params['cmid'], $params['useresource'], $params['hintmode']);
         return $result;
     }
 
@@ -95,12 +97,13 @@ class send_message extends external_api {
             'message' => new external_single_structure([
                 'id' => new external_value(PARAM_INT, 'Message id'),
                 'role' => new external_value(PARAM_ALPHA, 'tutor'),
-                'type' => new external_value(PARAM_ALPHANUMEXT, 'text, error, topics, studyplan, quiz, flashcards, summary'),
+                'type' => new external_value(PARAM_ALPHANUMEXT, 'text, hint, error, topics, studyplan, quiz, flashcards, summary'),
                 'content' => new external_value(PARAM_RAW, 'Text or JSON string'),
                 'cmid' => new external_value(PARAM_INT, 'Resource used'),
                 'timecreated' => new external_value(PARAM_INT, 'Time'),
                 'resourceurl' => new external_value(PARAM_RAW, 'URL of the resource used'),
                 'resourcename' => new external_value(PARAM_RAW, 'Name of the resource used'),
+                'hintlevel' => new external_value(PARAM_INT, 'Hint number, 0 when the reply is not a hint'),
             ]),
         ]);
     }

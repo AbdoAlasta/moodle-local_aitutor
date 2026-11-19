@@ -70,7 +70,8 @@ class ui {
             'assignmenthelp_intro', 'topics_intro', 'revision_intro', 'chip_main', 'chip_summarize', 'chip_practice',
             'chip_quiz', 'chip_plan', 'chip_takeaways', 'noresource_selected', 'newchat', 'retry', 'flashcard', 'restart',
             'cardhint', 'questionof', 'pickresourcefirst', 'prompt_summary', 'prompt_flashcards', 'prompt_quiz',
-            'prompt_studyplan', 'nav_suggestedtopics', 'chip_project', 'viewall', 'showless', 'yesterday',
+            'prompt_studyplan', 'nav_suggestedtopics', 'chip_project', 'viewall', 'showless', 'yesterday', 'hintbadge',
+            'hintanother', 'hintreveal', 'prompt_anotherhint', 'prompt_reveal',
         ];
     }
 

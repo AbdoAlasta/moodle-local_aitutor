@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_aitutor';
-$plugin->version   = 2026111602;
+$plugin->version   = 2026111800;
 $plugin->requires  = 2026042003; // Moodle 5.2.
 $plugin->maturity  = MATURITY_BETA;
-$plugin->release   = '0.8.1';
+$plugin->release   = '0.9.0';

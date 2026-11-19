@@ -80,5 +80,15 @@ function xmldb_local_aitutor_upgrade($oldversion) {
         }
         upgrade_plugin_savepoint(true, 2026111601, 'local', 'aitutor');
     }
+    if ($oldversion < 2026111800) {
+        // Hint mode: each chat remembers the student's toggle.
+        $dbman = $DB->get_manager();
+        $table = new xmldb_table('local_aitutor_chat');
+        $field = new xmldb_field('hintmode', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'summarizedupto');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026111800, 'local', 'aitutor');
+    }
     return true;
 }

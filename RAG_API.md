@@ -40,6 +40,9 @@ Settings: *Site administration > Plugins > Local plugins > AI Tutor > Course RAG
   whole chat. The plugin keeps it with the chat in Moodle and updates it with `POST /summarize` (below).
 - `instructions` (optional): the answer format of the action (assignment hints, or the JSON below for topics, study
   plan, quiz, flashcards and summary). The service adds them to the answer prompt only, never to the search.
+- `style` (optional): how to answer in hint mode. It goes to the answer prompt only, like `instructions`, but keeps the
+  relevance cut-off, so off-topic questions are still refused without a model call. A service without this field
+  ignores it and gives the full answer.
 - `question` is the student's text; a selected resource adds `(course material: <name>)` to steer the search.
 - `mode` is not sent, so LightRAG uses its default (`mix`).
 

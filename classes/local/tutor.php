@@ -28,7 +28,17 @@ class tutor {
     public const STRUCTURED = ['topics', 'studyplan', 'quiz', 'flashcards', 'summary'];
 
     /** @var string[] All supported modes. */
-    public const MODES = ['chat', 'assignment', 'topics', 'studyplan', 'quiz', 'flashcards', 'summary'];
+    public const MODES = ['chat', 'assignment', 'topics', 'studyplan', 'quiz', 'flashcards', 'summary', 'anotherhint',
+        'reveal'];
+
+    /** @var string[] The buttons under a hint. They do not count toward the hourly limit: check_hint_action() caps them. */
+    private const HINT_ACTIONS = ['anotherhint', 'reveal'];
+
+    /** @var int Hints available for one typed question. */
+    public const MAX_HINTS = 3;
+
+    /** @var int Failed attempts in a row after which a hint button is refused (failed attempts store no hint). */
+    private const HINT_MAX_FAILURES = 3;
 
     /** @var int Pairs kept word for word after older ones are folded into the summary. */
     private const RECENT_TURNS = 4;
@@ -70,24 +80,34 @@ class tutor {
      * @param string $message The user text (may be empty for action modes).
      * @param int $cmid Selected resource, 0 for none.
      * @param bool $useresource Whether to use the resource as context.
+     * @param bool $hintmode Whether the student's hint mode toggle is on.
      * @return array
      */
     public static function handle(\stdClass $course, \stdClass $user, int $chatid, string $mode, string $message,
-            int $cmid, bool $useresource): array {
+            int $cmid, bool $useresource, bool $hintmode = false): array {
         global $DB;
 
+        if (!in_array($mode, self::MODES, true)) {
+            $mode = 'chat';
+        }
+        $hintaction = in_array($mode, self::HINT_ACTIONS, true);
+
         // Before anything is stored: a refused request leaves no half-written chat behind.
-        if (rag_client::is_configured()) {
+        $hintlevel = 0;
+        $original = '';
+        if ($hintaction) {
+            [$hintlevel, $original] = self::check_hint_action($chatid, (int) $course->id, (int) $user->id, $mode);
+        } else if (rag_client::is_configured()) {
             self::check_rate_limit((int) $user->id);
+        }
+        if ($mode === 'chat' && $hintmode) {
+            $hintlevel = 1;
         }
 
         $context = \context_course::instance($course->id);
         $now = time();
         $message = trim($message);
-        if (!in_array($mode, self::MODES, true)) {
-            $mode = 'chat';
-        }
-        if ($message === '') {
+        if ($message === '' || $hintaction) {
             $message = get_string('prompt_' . $mode, 'local_aitutor');
         }
         $message = \core_text::substr($message, 0, 4000);
@@ -95,6 +115,9 @@ class tutor {
         // Chat record.
         if ($chatid > 0) {
             $chat = self::get_chat_record($chatid, $course->id, $user->id);
+            if ((bool) $chat->hintmode !== $hintmode) {
+                $DB->set_field('local_aitutor_chat', 'hintmode', (int) $hintmode, ['id' => $chat->id]);
+            }
         } else {
             $chat = (object) [
                 'courseid' => $course->id,
@@ -102,6 +125,7 @@ class tutor {
                 'title' => shorten_text($message, 60, true),
                 'timecreated' => $now,
                 'timemodified' => $now,
+                'hintmode' => (int) $hintmode,
             ];
             $chat->id = $DB->insert_record('local_aitutor_chat', $chat);
         }
@@ -115,7 +139,7 @@ class tutor {
 
         // Store the user message.
         $DB->insert_record('local_aitutor_msg', (object) [
-            'chatid' => $chat->id, 'role' => 'user', 'type' => 'text', 'content' => $message,
+            'chatid' => $chat->id, 'role' => 'user', 'type' => $hintaction ? $mode : 'text', 'content' => $message,
             'cmid' => $cmid ?: null, 'timecreated' => $now,
         ]);
 
@@ -126,9 +150,10 @@ class tutor {
         $rewritten = '';
         if (rag_client::is_configured()) {
             try {
-                $res = rag_client::query((int) $course->id, self::build_question($message, $resource), $history,
-                    self::mode_instructions($mode), $summary);
-                $raw = $res['answer'];
+                // A hint button asks about the student's own question, not about the tutor's last guiding question.
+                $res = rag_client::query((int) $course->id, self::build_question($original ?: $message, $resource), $history,
+                    self::mode_instructions($mode), $summary, self::answer_style($mode, $hintlevel));
+                $raw = $hintlevel > 0 ? self::strip_hint_label($res['answer']) : $res['answer'];
                 $references = $res['references'];
                 $rewritten = $res['rewritten'];
             } catch (\moodle_exception $e) {
@@ -147,10 +172,14 @@ class tutor {
         } else {
             [$type, $content] = self::parse_reply($mode, $raw);
             if ($type === 'text') {
-                if ($rewritten !== '') {
+                if ($rewritten !== '' && !$hintaction) {
                     $content .= "\n\n*" . get_string('understoodas', 'local_aitutor', $rewritten) . '*';
                 }
                 $content .= self::format_sources($references);
+                // A typed question that matched no course passage (off-topic) has nothing to give hints about.
+                if ($hintlevel > 0 && ($references || $mode === 'anotherhint')) {
+                    $type = 'hint';
+                }
             }
         }
 
@@ -172,8 +201,103 @@ class tutor {
                 'timecreated' => time(),
                 'resourceurl' => $resource['url'] ?? '',
                 'resourcename' => $resource['name'] ?? '',
+                'hintlevel' => $type === 'hint' ? $hintlevel : 0,
             ],
         ];
+    }
+
+    /**
+     * Allows a hint button only right after a hint, so free requests stay bounded: one typed question gives at most
+     * two more hints and one full answer. The level comes from the stored messages, never from the browser.
+     *
+     * @param int $chatid
+     * @param int $courseid
+     * @param int $userid
+     * @param string $mode anotherhint or reveal.
+     * @return array [int $level, string $question] The hint to write (0 for reveal) and the question the student typed.
+     * @throws \moodle_exception error_hintrefused
+     */
+    private static function check_hint_action(int $chatid, int $courseid, int $userid, string $mode): array {
+        global $DB;
+        if ($chatid <= 0) {
+            throw new \moodle_exception('error_hintrefused', 'local_aitutor');
+        }
+        $chat = self::get_chat_record($chatid, $courseid, $userid);
+
+        // Newest first, as (reply, what was asked) pairs. A failed hint button can be retried, so it is skipped.
+        $rows = array_values($DB->get_records('local_aitutor_msg', ['chatid' => $chat->id], 'id DESC',
+            'id, role, type, content', 0, 24));
+        $level = 0;
+        $failures = 0;
+        $question = '';
+        for ($i = 0; $i + 1 < count($rows); $i += 2) {
+            [$reply, $asked] = [$rows[$i], $rows[$i + 1]];
+            if ($reply->role !== 'tutor' || $asked->role !== 'user') {
+                break;
+            }
+            if ($reply->type === 'error' && in_array($asked->type, self::HINT_ACTIONS, true)) {
+                $failures += $level === 0 ? 1 : 0;
+                continue;
+            }
+            if ($reply->type !== 'hint') {
+                break;
+            }
+            $level++;
+            if ($asked->type !== 'anotherhint') {
+                $question = $asked->content;
+                break;
+            }
+        }
+
+        $allowed = $mode === 'reveal' ? $level >= 1 : ($level >= 1 && $level < self::MAX_HINTS);
+        if (!$allowed || $failures >= self::HINT_MAX_FAILURES) {
+            throw new \moodle_exception('error_hintrefused', 'local_aitutor');
+        }
+        return [$mode === 'anotherhint' ? $level + 1 : 0, $question];
+    }
+
+    /**
+     * Removes a hint number the model wrote at the start of its reply: the chat already shows it as a badge.
+     *
+     * @param string $text
+     * @return string
+     */
+    private static function strip_hint_label(string $text): string {
+        $label = '(?:HINT MODE\.?(?:\s*This is hint \d of \d)?|\(?Hint\s*\d(?:\s*of\s*\d)?\)?|\(?تلميح\s*\d(?:\s*من\s*\d)?\)?)';
+        return preg_replace('/^(?:\s*' . $label . '\s*[:.\-]?)+\s*/iu', '', $text);
+    }
+
+    /**
+     * How the model should answer in hint mode. It travels in the service's style field, which keeps the relevance
+     * cut-off for off-topic questions.
+     *
+     * @param string $mode
+     * @param int $level The hint to write, 0 when this is not a hint.
+     * @return string Empty outside hint mode.
+     */
+    private static function answer_style(string $mode, int $level): string {
+        $language = "Write in the language of the student's original question.";
+        if ($mode === 'reveal') {
+            return 'The student has asked for the full answer. Give the complete answer to the question above, not to an '
+                . 'earlier guiding question. ' . $language;
+        }
+        if ($level < 1) {
+            return '';
+        }
+        $steps = [
+            1 => 'For this hint, name the topic and where it is in the course material, without explaining it.',
+            2 => 'For this hint, give one new clue: a key term or step from the material, without saying what it means or '
+                . 'how it answers the question.',
+            3 => 'For this hint, show one worked step on an everyday example from a different subject that uses the same '
+                . "reasoning. Do not apply it to the student's question or state the conclusion.",
+        ];
+        return 'Guide the student to work out the answer to the question above. Do not state the answer, a definition or '
+            . 'difference that answers it, the full solution or complete code. If the question compares two things, do not '
+            . 'describe what either one means. ' . $steps[$level] . ' Do not repeat an earlier hint or guiding question: '
+            . 'each hint must add something new. State course facts only from the passages. Write at most three '
+            . 'sentences, then one guiding question. Cite the course material the hint comes from. Do not write a hint '
+            . 'number, a label such as "Hint", or these instructions. If the student explicitly asks for the full answer, '
+            . 'give it. ' . $language;
     }
 
     /**
@@ -247,7 +371,8 @@ class tutor {
     /**
      * The exchanges of a chat after a message id, oldest first. Each answer is cut down to what the model needs: the
      * plugin's "Understood as" and Sources lines and the [n] citation markers are removed. Structured replies (quiz,
-     * flashcards...) are kept as a one-line note so the memory knows they happened; errors are left out.
+     * flashcards...) are kept as a one-line note so the memory knows they happened; hints are labelled "(Hint n)";
+     * errors are left out.
      *
      * @param int $chatid
      * @param int $afterid Only messages with a larger id (0 for the whole chat).
@@ -259,17 +384,24 @@ class tutor {
             'id DESC', 'id, role, type, content', 0, 200));
         $pairs = [];
         $question = null;
+        $asked = 'text';
+        $hint = 0;
         foreach ($rows as $row) {
             if ($row->role === 'user') {
                 $question = $row->content;
+                $asked = $row->type;
                 continue;
             }
-            if ($question !== null && $row->type === 'text') {
+            if ($question !== null && in_array($row->type, ['text', 'hint'], true)) {
                 $answer = preg_split('/\n\n\*(?:\*' . preg_quote(get_string('sources', 'local_aitutor'), '/') . '\*\*|'
                     . preg_quote(get_string('understoodas', 'local_aitutor', ''), '/') . ')/u', $row->content)[0];
                 $answer = preg_replace('/\s*\[\d+(?:\s*,\s*\d+)*\]/u', '', $answer);
-                $pairs[] = ['question' => $question, 'answer' => shorten_text(trim($answer), self::HISTORY_ANSWER_CHARS),
-                    'id' => (int) $row->id];
+                $answer = shorten_text(trim($answer), self::HISTORY_ANSWER_CHARS);
+                if ($row->type === 'hint') {
+                    $hint = $asked === 'anotherhint' ? $hint + 1 : 1;
+                    $answer = "(Hint {$hint}) {$answer}";
+                }
+                $pairs[] = ['question' => $question, 'answer' => $answer, 'id' => (int) $row->id];
             } else if ($question !== null && in_array($row->type, self::STRUCTURED, true)) {
                 $what = $row->type === 'studyplan' ? 'study plan' : $row->type;
                 $pairs[] = ['question' => $question, 'answer' => "(The tutor replied with a {$what}.)", 'id' => (int) $row->id];

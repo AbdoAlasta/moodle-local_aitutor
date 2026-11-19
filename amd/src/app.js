@@ -37,7 +37,12 @@ const SELECTORS = {
     title: '[data-region="chat-title"]',
     resourceName: '[data-region="resource-name"]',
     contextBody: '[data-region="context-body"]',
+    hintToggle: '[data-region="hint-toggle"]',
+    hintLabel: '[data-region="hint-label"]',
 };
+
+/** Hints available for one typed question (the server enforces it: tutor::MAX_HINTS). */
+const MAX_HINTS = 3;
 
 /**
  * Tiny hyperscript helper that builds DOM nodes safely.
@@ -201,6 +206,8 @@ export const mount = (root, config) => {
         title: root.querySelector(SELECTORS.title),
         resourceName: root.querySelector(SELECTORS.resourceName),
         contextBody: root.querySelector(SELECTORS.contextBody),
+        hintToggle: root.querySelector(SELECTORS.hintToggle),
+        hintLabel: root.querySelector(SELECTORS.hintLabel),
     };
     const state = {
         courseid: config.courseid,
@@ -211,6 +218,7 @@ export const mount = (root, config) => {
         resources: [],
         busy: false,
         last: null, // Last request, for retry.
+        hintActions: null, // The buttons under the latest hint.
     };
 
     const call = (methodname, args) => Ajax.call([{methodname, args}])[0];
@@ -240,6 +248,10 @@ export const mount = (root, config) => {
             return S.yesterday;
         }
         return date.toLocaleDateString(lang, {month: 'short', day: 'numeric'});
+    };
+
+    const syncHintLabel = () => {
+        els.hintLabel.hidden = !els.hintToggle.checked;
     };
 
     // Shows the selected resource name in the Course Context card (full page only).
@@ -406,12 +418,39 @@ export const mount = (root, config) => {
         return wrap;
     };
 
+    // Only the latest hint can be followed up, so older hints lose their buttons.
+    const clearHintActions = () => {
+        if (state.hintActions) {
+            state.hintActions.remove();
+            state.hintActions = null;
+        }
+    };
+
+    const renderHint = (msg) => {
+        const level = msg.hintlevel || 1;
+        state.hintActions = h('div', {class: 'aitutor-actions'}, [
+            level < MAX_HINTS ? h('button', {type: 'button', class: 'btn btn-sm btn-outline-secondary',
+                onclick: () => send(S.prompt_anotherhint, 'anotherhint')}, S.hintanother) : null,
+            h('button', {type: 'button', class: 'btn btn-sm btn-primary',
+                onclick: () => send(S.prompt_reveal, 'reveal')}, S.hintreveal),
+        ]);
+        return addRow('tutor', [
+            h('div', {class: 'aitutor-hintbadge'}, fmt(S.hintbadge, {level, total: MAX_HINTS})),
+            markdown(msg.content),
+            state.hintActions,
+        ], {timecreated: msg.timecreated});
+    };
+
     /**
      * Renders one stored/returned tutor message.
      *
      * @param {Object} msg
      */
     const renderTutor = (msg) => {
+        clearHintActions();
+        if (msg.type === 'hint') {
+            return renderHint(msg);
+        }
         if (msg.type === 'error') {
             const retry = state.last ? h('button', {type: 'button', class: 'btn btn-sm btn-outline-secondary mt-2',
                 onclick: () => send(state.last.text, state.last.mode, true)}, S.retry) : null;
@@ -479,7 +518,7 @@ export const mount = (root, config) => {
      * Sends a message or runs a tutor action.
      *
      * @param {string} text Text shown as the user's bubble (and sent as the request).
-     * @param {string} mode chat, assignment, topics, studyplan, quiz, flashcards or summary.
+     * @param {string} mode chat, assignment, topics, studyplan, quiz, flashcards, summary, anotherhint or reveal.
      * @param {boolean} isRetry Do not add the user bubble again.
      */
     const send = (text, mode, isRetry = false) => {
@@ -487,6 +526,7 @@ export const mount = (root, config) => {
             return;
         }
         const effectiveMode = mode === 'chat' ? state.mode : mode;
+        clearHintActions();
         if (!isRetry) {
             addText('user', text);
         }
@@ -500,6 +540,7 @@ export const mount = (root, config) => {
             message: text,
             cmid: currentCmid(),
             useresource: els.useResource.checked,
+            hintmode: els.hintToggle.checked,
         }).then((res) => {
             thinking.remove();
             if (!state.chatid) {
@@ -552,6 +593,8 @@ export const mount = (root, config) => {
             state.chatid = chat.chatid;
             state.mode = 'chat';
             els.title.textContent = chat.title;
+            els.hintToggle.checked = chat.hintmode;
+            syncHintLabel();
             els.messages.textContent = '';
             chat.messages.forEach((m) => {
                 if (m.role === 'user') {
@@ -684,6 +727,8 @@ export const mount = (root, config) => {
             send(S['prompt_' + mode] || target.textContent.trim(), mode);
         }
     });
+
+    els.hintToggle.addEventListener('change', syncHintLabel);
 
     els.resource.addEventListener('change', () => {
         syncResourceLabel();

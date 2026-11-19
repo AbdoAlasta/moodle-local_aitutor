@@ -51,9 +51,14 @@
     <section class="aitutor-main card" aria-label="{{#str}}conversation, local_aitutor{{/str}}">
         <header class="aitutor-main-header">
             <h2 class="aitutor-chat-title h6 mb-0" data-region="chat-title">{{#str}}newchat, local_aitutor{{/str}}</h2>
+            <span class="aitutor-hintlabel" data-region="hint-label" hidden>{{#str}}hintmode, local_aitutor{{/str}}</span>
         </header>
         <div class="aitutor-messages" data-region="messages" role="log" aria-live="polite" tabindex="0"></div>
         <form class="aitutor-composer" data-region="composer" autocomplete="off">
+            <div class="form-check form-switch aitutor-hinttoggle">
+                <input type="checkbox" role="switch" class="form-check-input" id="aitutor-hintmode" data-region="hint-toggle">
+                <label class="form-check-label" for="aitutor-hintmode">{{#str}}hintmode, local_aitutor{{/str}}</label>
+            </div>
             <label for="aitutor-input" class="sr-only">{{#str}}askplaceholder, local_aitutor{{/str}}</label>
             <input type="text" id="aitutor-input" class="form-control aitutor-input" data-region="input"
                    maxlength="2000" placeholder="{{#str}}askplaceholder, local_aitutor{{/str}}">

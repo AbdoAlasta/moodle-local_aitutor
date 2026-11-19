@@ -79,8 +79,38 @@
 }
 
 .aitutor-main-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
     padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--aitutor-border);
+}
+
+.aitutor-hintlabel,
+.aitutor-hintbadge {
+    display: inline-block;
+    padding: 0.1rem 0.6rem;
+    border-radius: 999px;
+    background: var(--aitutor-primary);
+    color: #fff;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.aitutor-hintlabel[hidden] {
+    display: none;
+}
+
+.aitutor-hintbadge {
+    margin-bottom: 0.4rem;
+}
+
+.aitutor-hinttoggle {
+    flex: 0 0 auto;
+    align-self: center;
+    margin-bottom: 0;
+    white-space: nowrap;
 }
 
 .aitutor-messages {

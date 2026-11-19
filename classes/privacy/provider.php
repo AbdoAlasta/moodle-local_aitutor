@@ -49,6 +49,7 @@ class provider implements
             'timecreated' => 'privacy:metadata:chat:timecreated',
             'timemodified' => 'privacy:metadata:chat:timemodified',
             'summary' => 'privacy:metadata:chat:summary',
+            'hintmode' => 'privacy:metadata:chat:hintmode',
         ], 'privacy:metadata:chat');
         $collection->add_database_table('local_aitutor_msg', [
             'role' => 'privacy:metadata:msg:role',
@@ -121,6 +122,7 @@ class provider implements
                     'title' => $chat->title,
                     'created' => \core_privacy\local\request\transform::datetime($chat->timecreated),
                     'summary' => (string) ($chat->summary ?? ''),
+                    'hintmode' => \core_privacy\local\request\transform::yesno($chat->hintmode),
                     'messages' => $messages,
                 ];
             }

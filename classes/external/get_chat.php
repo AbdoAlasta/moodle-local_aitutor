@@ -61,7 +61,14 @@ class get_chat extends external_api {
         $chat = tutor::get_chat_record($params['chatid'], $params['courseid'], $USER->id);
         $rows = $DB->get_records('local_aitutor_msg', ['chatid' => $chat->id], 'id ASC');
         $messages = [];
+        $asked = 'text';
+        $hint = 0;
         foreach ($rows as $row) {
+            if ($row->role === 'user') {
+                $asked = $row->type;
+            } else if ($row->type === 'hint') {
+                $hint = $asked === 'anotherhint' ? $hint + 1 : 1;
+            }
             $messages[] = [
                 'id' => (int) $row->id,
                 'role' => $row->role,
@@ -69,9 +76,11 @@ class get_chat extends external_api {
                 'content' => $row->content,
                 'cmid' => (int) $row->cmid,
                 'timecreated' => (int) $row->timecreated,
+                'hintlevel' => $row->type === 'hint' ? $hint : 0,
             ];
         }
-        return ['chatid' => (int) $chat->id, 'title' => $chat->title, 'messages' => $messages];
+        return ['chatid' => (int) $chat->id, 'title' => $chat->title, 'hintmode' => (bool) $chat->hintmode,
+            'messages' => $messages];
     }
 
     /**
@@ -83,6 +92,7 @@ class get_chat extends external_api {
         return new external_single_structure([
             'chatid' => new external_value(PARAM_INT, 'Chat id'),
             'title' => new external_value(PARAM_RAW, 'Title'),
+            'hintmode' => new external_value(PARAM_BOOL, 'Whether hint mode is on for this chat'),
             'messages' => new external_multiple_structure(new external_single_structure([
                 'id' => new external_value(PARAM_INT, 'Message id'),
                 'role' => new external_value(PARAM_ALPHA, 'user or tutor'),
@@ -90,6 +100,7 @@ class get_chat extends external_api {
                 'content' => new external_value(PARAM_RAW, 'Text or JSON string'),
                 'cmid' => new external_value(PARAM_INT, 'Resource used'),
                 'timecreated' => new external_value(PARAM_INT, 'Time'),
+                'hintlevel' => new external_value(PARAM_INT, 'Hint number, 0 when the message is not a hint'),
             ])),
         ]);
     }

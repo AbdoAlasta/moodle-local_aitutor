@@ -112,10 +112,11 @@ class rag_client {
      * @param array[] $history Earlier exchanges of the chat, oldest first: [['question' => ..., 'answer' => ...]].
      * @param string $instructions Answer format for the action; not used for the search.
      * @param string $summary Running summary of the older part of the chat.
+     * @param string $style How to answer (hint mode); not searched, and it keeps the relevance cut-off.
      * @return array
      */
     public static function query_payload(int $courseid, string $question, array $history = [],
-            string $instructions = '', string $summary = ''): array {
+            string $instructions = '', string $summary = '', string $style = ''): array {
         $payload = ['question' => $question, 'course_id' => (string) $courseid];
         if ($history) {
             $payload['history'] = $history;
@@ -125,6 +126,9 @@ class rag_client {
         }
         if ($summary !== '') {
             $payload['summary'] = $summary;
+        }
+        if ($style !== '') {
+            $payload['style'] = $style;
         }
         return $payload;
     }
@@ -156,13 +160,14 @@ class rag_client {
      * @param array[] $history See query_payload().
      * @param string $instructions See query_payload().
      * @param string $summary See query_payload().
+     * @param string $style See query_payload().
      * @return array ['answer' => string, 'references' => array[], 'rewritten' => string]
      * @throws \moodle_exception When the service cannot be reached or answers with an error.
      */
     public static function query(int $courseid, string $question, array $history = [], string $instructions = '',
-            string $summary = ''): array {
+            string $summary = '', string $style = ''): array {
         $res = self::request('POST', '/query',
-            self::query_payload($courseid, $question, $history, $instructions, $summary));
+            self::query_payload($courseid, $question, $history, $instructions, $summary, $style));
 
         if ($res['error'] !== '' || $res['status'] < 200 || $res['status'] >= 300) {
             // Details are for the administrator (debugging), the student only sees a generic message.

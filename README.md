@@ -26,6 +26,14 @@ providers are not used.
 
 ## Changelog
 
+### 0.9.0: hint mode
+- A **Hint mode** toggle in the chat, saved per chat. With it on, a typed question gets one hint and a guiding question
+  instead of the answer.
+- **Another hint** (up to 3 hints) and **Show full answer** buttons under each hint. Moodle checks them on the server
+  and they do not count toward the hourly limit; only the typed question does.
+- **Needs the updated `native_rag_gemini`** (the new `style` field). An older service ignores the field and answers in
+  full.
+
 ### 0.8.1: no need to open localhost in Moodle
 - Reaching the RAG service no longer requires removing `127.0.0.0/8` and `localhost` from *cURL blocked hosts list*:
   the plugin skips that check for the service URL only, because only an administrator can set it.

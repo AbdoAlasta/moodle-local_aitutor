@@ -13,6 +13,7 @@
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="summary" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Running summary of the older part of the chat (chat memory)"/>
         <FIELD NAME="summarizedupto" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Id of the last message folded into the summary"/>
+        <FIELD NAME="hintmode" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Whether the student's hint mode toggle is on for this chat"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -28,7 +29,7 @@
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="chatid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="role" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false" COMMENT="user or tutor"/>
-        <FIELD NAME="type" TYPE="char" LENGTH="30" NOTNULL="true" DEFAULT="text" SEQUENCE="false" COMMENT="text, quiz, flashcards, studyplan, summary, topics"/>
+        <FIELD NAME="type" TYPE="char" LENGTH="30" NOTNULL="true" DEFAULT="text" SEQUENCE="false" COMMENT="text, hint, error, quiz, flashcards, studyplan, summary, topics; anotherhint or reveal for a hint button"/>
         <FIELD NAME="content" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Plain text or JSON depending on type"/>
         <FIELD NAME="cmid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
