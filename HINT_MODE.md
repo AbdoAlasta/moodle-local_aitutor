@@ -76,8 +76,9 @@ Free hints must not become a way around the hourly limit, so Moodle, not the bro
 ## Hint style text
 
 The text sent to the model is in `tutor::answer_style()`. It tells the model not to state the answer, not to describe
-either side of a comparison, to add something new in each hint, and not to write a hint number. Only the current level's
-step is sent. Level 1: name the topic and where it is. Level 2: give one new clue without explaining it. Level 3: show
+either side of a comparison, to add something new in each hint, not to write a hint number, and not to talk about the
+course materials, pages or sections (the [n] citations and the Sources list show where a hint comes from). Only the
+current level's step is sent. Level 1: name the topic. Level 2: give one new clue without explaining it. Level 3: show
 one worked step on an everyday example from a different subject.
 
 ## Issues and how the design avoids them

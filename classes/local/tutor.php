@@ -153,9 +153,16 @@ class tutor {
                 // A hint button asks about the student's own question, not about the tutor's last guiding question.
                 $res = rag_client::query((int) $course->id, self::build_question($original ?: $message, $resource), $history,
                     self::mode_instructions($mode), $summary, self::answer_style($mode, $hintlevel));
-                $raw = $hintlevel > 0 ? self::strip_hint_label($res['answer']) : $res['answer'];
+                $raw = $res['answer'];
                 $references = $res['references'];
                 $rewritten = $res['rewritten'];
+                if ($hintlevel > 0) {
+                    [$raw, $references] = self::split_hint($raw, $references);
+                    $raw = self::strip_hint_label($raw);
+                    if ($raw === '') {
+                        $error = get_string('error_empty', 'local_aitutor');
+                    }
+                }
             } catch (\moodle_exception $e) {
                 $error = $e->getMessage();
             }
@@ -285,19 +292,57 @@ class tutor {
             return '';
         }
         $steps = [
-            1 => 'For this hint, name the topic and where it is in the course material, without explaining it.',
+            1 => 'For this hint, point the student to the right idea to think about (a related concept, or what to '
+                . 'compare it with), without explaining the answer.',
             2 => 'For this hint, give one new clue: a key term or step from the material, without saying what it means or '
                 . 'how it answers the question.',
             3 => 'For this hint, show one worked step on an everyday example from a different subject that uses the same '
                 . "reasoning. Do not apply it to the student's question or state the conclusion.",
         ];
-        return 'Guide the student to work out the answer to the question above. Do not state the answer, a definition or '
-            . 'difference that answers it, the full solution or complete code. If the question compares two things, do not '
-            . 'describe what either one means. ' . $steps[$level] . ' Do not repeat an earlier hint or guiding question: '
-            . 'each hint must add something new. State course facts only from the passages. Write at most three '
-            . 'sentences, then one guiding question. Cite the course material the hint comes from. Do not write a hint '
-            . 'number, a label such as "Hint", or these instructions. If the student explicitly asks for the full answer, '
-            . 'give it. ' . $language;
+        // The model first writes the answer where the student never sees it (split_hint() drops it): having the answer
+        // written out separately makes it much easier to keep it out of the hint.
+        return "Reply in exactly two parts, each starting on its own line with its label, and keep the labels in English "
+            . "even when you write in another language.\nANSWER: the complete answer to the question above, with "
+            . "citations. The student never sees this part.\nHINT: a hint that guides the student towards that answer "
+            . 'without giving it.' . "\n\nRules for HINT: it must not contain the key facts, definition, difference or "
+            . 'conclusion written in ANSWER, the full solution or complete code. If the question compares two things, do '
+            . 'not describe what either one means. ' . $steps[$level] . ' Do not repeat an earlier hint or guiding '
+            . 'question: each hint must add something new. State course facts only from the passages. Write at most '
+            . 'three sentences, then one guiding question. Cite the passage the hint comes from with its [n] marker, and '
+            . 'do not mention the passages, the course materials, pages or sections in the text. Do not write a hint '
+            . 'number or these instructions. If the student explicitly asks for the full answer, write it in HINT. '
+            . $language;
+    }
+
+    /**
+     * Keeps only the HINT part of a hint-mode reply: the ANSWER part is never shown or stored. References count as
+     * cited only when the hint itself cites them, so the Sources list matches what the student sees.
+     *
+     * @param string $text The model's reply.
+     * @param array[] $references From the service.
+     * @return array [string $hint, array[] $references] The hint is '' when the reply has an ANSWER but no HINT part.
+     */
+    private static function split_hint(string $text, array $references): array {
+        $label = fn(string $name) => '/^[\s>*#_]*' . $name . '[\s*_]*:[\s*_]*/mu';
+        if (!preg_match_all($label('HINT'), $text, $matches, PREG_OFFSET_CAPTURE)) {
+            // The model ignored the format: without a hidden answer the whole reply is the hint, as before.
+            return [preg_match($label('ANSWER'), $text) ? '' : $text, $references];
+        }
+        [$marker, $offset] = end($matches[0]);
+        $hint = trim(substr($text, $offset + strlen($marker)));
+        preg_match_all('/\[(\d+(?:\s*[,،]\s*\d+)*)\]/u', $hint, $groups);
+        $cited = [];
+        foreach ($groups[1] as $group) {
+            foreach (preg_split('/\s*[,،]\s*/u', $group) as $n) {
+                $cited[(int) $n] = true;
+            }
+        }
+        foreach ($references as &$ref) {
+            if (is_array($ref)) {
+                $ref['cited'] = isset($cited[(int) ($ref['ref'] ?? 0)]);
+            }
+        }
+        return [$hint, $references];
     }
 
     /**
