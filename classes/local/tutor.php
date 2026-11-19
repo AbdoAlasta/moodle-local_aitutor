@@ -56,6 +56,12 @@ class tutor {
     /** @var int Longest earlier answer sent as history (characters). */
     private const HISTORY_ANSWER_CHARS = 500;
 
+    /** @var int Of those, how much is taken from the end of a long answer, where a step-by-step reply names the next part. */
+    private const HISTORY_TAIL_CHARS = 150;
+
+    /** @var int Longest text sent for the most recent answer, which follow-ups such as "next" refer to. */
+    private const LAST_ANSWER_CHARS = 4000;
+
     /**
      * Returns a chat owned by the user in the course, or throws.
      *
@@ -410,18 +416,24 @@ class tutor {
         // Every pair that is not in the summary yet, so nothing is lost between two folds.
         $recent = array_map(fn($p) => ['question' => $p['question'], 'answer' => $p['answer']],
             array_slice($pairs, -self::MAX_HISTORY));
+        // The latest answer goes in full: follow-ups such as "next" or "the third one" refer to it.
+        if ($recent && isset(end($pairs)['full'])) {
+            $recent[count($recent) - 1]['answer'] = end($pairs)['full'];
+        }
         return [$summary, $recent];
     }
 
     /**
      * The exchanges of a chat after a message id, oldest first. Each answer is cut down to what the model needs: the
-     * plugin's "Understood as" and Sources lines and the [n] citation markers are removed. Structured replies (quiz,
+     * plugin's "Understood as" and Sources lines and the [n] citation markers are removed, and a long answer keeps its
+     * start and its end. Structured replies (quiz,
      * flashcards...) are kept as a one-line note so the memory knows they happened; hints are labelled "(Hint n)";
      * errors are left out.
      *
      * @param int $chatid
      * @param int $afterid Only messages with a larger id (0 for the whole chat).
-     * @return array[] [['question' => string, 'answer' => string, 'id' => int (id of the answer message)]]
+     * @return array[] [['question' => string, 'answer' => string, 'full' => string (only for text and hint replies,
+     *     up to LAST_ANSWER_CHARS), 'id' => int (id of the answer message)]]
      */
     private static function load_pairs(int $chatid, int $afterid): array {
         global $DB;
@@ -441,12 +453,19 @@ class tutor {
                 $answer = preg_split('/\n\n\*(?:\*' . preg_quote(get_string('sources', 'local_aitutor'), '/') . '\*\*|'
                     . preg_quote(get_string('understoodas', 'local_aitutor', ''), '/') . ')/u', $row->content)[0];
                 $answer = preg_replace('/\s*\[\d+(?:\s*,\s*\d+)*\]/u', '', $answer);
-                $answer = shorten_text(trim($answer), self::HISTORY_ANSWER_CHARS);
+                $full = trim($answer);
+                $answer = $full;
+                if (\core_text::strlen($full) > self::HISTORY_ANSWER_CHARS) {
+                    $tail = preg_replace('/^\S*\s+/u', '', \core_text::substr($full, -self::HISTORY_TAIL_CHARS));
+                    $answer = shorten_text($full, self::HISTORY_ANSWER_CHARS - self::HISTORY_TAIL_CHARS) . ' ' . $tail;
+                }
+                $full = shorten_text($full, self::LAST_ANSWER_CHARS);
                 if ($row->type === 'hint') {
                     $hint = $asked === 'anotherhint' ? $hint + 1 : 1;
                     $answer = "(Hint {$hint}) {$answer}";
+                    $full = "(Hint {$hint}) {$full}";
                 }
-                $pairs[] = ['question' => $question, 'answer' => $answer, 'id' => (int) $row->id];
+                $pairs[] = ['question' => $question, 'answer' => $answer, 'full' => $full, 'id' => (int) $row->id];
             } else if ($question !== null && in_array($row->type, self::STRUCTURED, true)) {
                 $what = $row->type === 'studyplan' ? 'study plan' : $row->type;
                 $pairs[] = ['question' => $question, 'answer' => "(The tutor replied with a {$what}.)", 'id' => (int) $row->id];

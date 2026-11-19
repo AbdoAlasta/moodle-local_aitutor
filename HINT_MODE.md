@@ -78,15 +78,33 @@ Free hints must not become a way around the hourly limit, so Moodle, not the bro
 The text sent to the model is in `tutor::answer_style()`. It tells the model not to state the answer, not to describe
 either side of a comparison, to add something new in each hint, not to write a hint number, and not to talk about the
 course materials, pages or sections (the [n] citations and the Sources list show where a hint comes from). Only the
-current level's step is sent. Level 1: name the topic. Level 2: give one new clue without explaining it. Level 3: show
-one worked step on an everyday example from a different subject.
+current level's step is sent. Level 1: point to the right idea to think about (a related concept, or what to compare it
+with). Level 2: give one new clue without explaining it. Level 3: show one worked step on an everyday example from a
+different subject.
+
+## The hidden answer (ANSWER/HINT split)
+
+Asked only for a hint, the model often gave the definition anyway on short "what is X" questions. So, in hint mode, the
+style text asks for a reply in two labelled parts, in one Gemini call:
+
+- `ANSWER:` the complete answer, with citations. The student never sees it.
+- `HINT:` a hint towards that answer that must not repeat its key facts.
+
+Writing the answer first gives the model something concrete to hold back. `tutor::split_hint()` then keeps only the
+text after the last `HINT:` label (bold or Markdown labels are accepted), and marks as cited only the sources the hint
+cites, so the Sources list does not point at the hidden answer. If the reply has an `ANSWER:` but no `HINT:`, nothing is
+shown and the student gets the "empty reply" error, so a missing label never shows the answer. A reply with no labels
+is shown as it is. The labels stay in English in every language. **Show full answer** does not use the split.
+
+The cost is a longer reply: each hint call writes about twice as much text. In the real check hints still took 2 to 5
+seconds.
 
 ## Issues and how the design avoids them
 
 | Issue | Why it happens | How we avoid it |
 | --- | --- | --- |
 | Off-topic questions reach Gemini again | Today any request with `instructions` skips the 0.60 relevance cut-off (action prompts score low on purpose). Hint mode on every question would disable the guard. | Hint text travels in the new `style` field, which keeps the cut-off. Only real actions use `instructions`. Covered by a test. |
-| The tutor gives the answer away | The model may ignore the rule, especially on short factual questions. | Strict style text at temperature 0.2, the full answer only through `reveal`, and a check with 10 course questions (English and Arabic) before release. A model can still slip; the check measures how often. |
+| The tutor gives the answer away | The model may ignore the rule, especially on short factual questions. | The hidden answer (ANSWER/HINT split), strict style text at temperature 0.2, and the full answer only through `reveal`. A check with 14 course questions (English and Arabic) on 19 Nov 2026: hint 1 no longer gives the definition on "what is X" questions, and no hidden answer was shown, but 4 of 22 hints at levels 1 and 2 still named key facts. A model can still slip; the check measures how often. |
 | Free hints bypass the hourly limit | Hints do not count, so repeated hint requests could cost unlimited Gemini calls. | Moodle checks the cap on the server: at most 2 extra hints and 1 full answer per typed question, so at most 4 calls for each counted question. |
 | Hint level is lost in long chats | Older exchanges are folded into the summary. | Moodle counts the level from the stored replies and sends it, so it never depends on the memory. Hint replies are labelled "(Hint n)" in the memory too. |
 | "Show full answer" is misread | Guessing intent from free text is unreliable. | The button sends an explicit `reveal` mode. A typed request ("just tell me the answer") is honoured by the style text as a second path. |
