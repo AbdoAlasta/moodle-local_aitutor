@@ -153,7 +153,6 @@ $string['startrevision'] = 'Start revision with flashcards';
 $string['stoprec'] = 'Stop';
 $string['tabname'] = 'AI Tutor';
 $string['tapreveal'] = 'Tap to reveal';
-$string['themetoggle'] = 'Switch between dark and light mode';
 $string['thinking'] = 'Thinking...';
 $string['togglesidebar'] = 'Show or hide the sidebar';
 $string['topics_intro'] = 'Here are some things you can ask about:';

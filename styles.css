@@ -618,7 +618,7 @@
 }
 
 /* =====================================================================================
-   AI Tutor full page: ChatGPT look-alike (dark). Everything is scoped to .aitutor-gpt.
+   AI Tutor full page: ChatGPT look-alike (light). Everything is scoped to .aitutor-gpt.
    ===================================================================================== */
 /* The tutor lives inside the normal course page (same header + tabs as Course / Grades). Use the full width. */
 body.local-aitutor-page #page.drawers .main-inner,
@@ -1478,63 +1478,6 @@ body.local-aitutor-page.limitedwidth #page.drawers .main-inner {
 .aitutor-gpt .aitutor-suggest-row:focus-visible {
     background: var(--g-hover);
     color: var(--g-text);
-}
-
-/* ---------------- Light theme (toggled by the sun / moon button) ---------------- */
-.aitutor-gpt.is-dark {
-    --g-bg: #000;
-    --g-sidebar: #0a0a0a;
-    --g-composer: #212121;
-    --g-surface: #2f2f2f;
-    --g-hover: #1f1f1f;
-    --g-border: #262626;
-    --g-text: #ececec;
-    --g-muted: #9b9b9b;
-    --g-hover-strong: #2a2a2a;
-    --g-line: #3a3a3a;
-    --g-line-strong: #444;
-    --g-outline: #555;
-    --g-code-bg: #0d0d0d;
-    --g-popover: #2a2a2a;
-    --g-popover-border: #333;
-    --g-popover-hover: #333;
-    --g-scroll: #333;
-    --g-link: color-mix(in srgb, var(--g-brand) 55%, #fff);
-    --g-danger: #f87171;
-    --g-ring: rgba(255, 255, 255, 0.15);
-    --g-shadow: rgba(0, 0, 0, 0.5);
-    color-scheme: dark;
-    --aitutor-primary-soft: #1f1f1f;
-    --aitutor-border: #262626;
-    --aitutor-muted: #9b9b9b;
-}
-
-/* Moon is shown in light mode (click = go dark), sun is shown in dark mode (click = go light). */
-.aitutor-gpt .aitutor-theme-toggle .aitutor-ico-sun,
-.aitutor-gpt.is-dark .aitutor-theme-toggle .aitutor-ico-moon {
-    display: none;
-}
-
-.aitutor-gpt.is-dark .aitutor-theme-toggle .aitutor-ico-sun {
-    display: block;
-}
-
-.aitutor-gpt,
-.aitutor-gpt .aitutor-sidebar,
-.aitutor-gpt .aitutor-main,
-.aitutor-gpt .aitutor-composer,
-.aitutor-gpt .aitutor-popover {
-    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .aitutor-gpt,
-    .aitutor-gpt .aitutor-sidebar,
-    .aitutor-gpt .aitutor-main,
-    .aitutor-gpt .aitutor-composer,
-    .aitutor-gpt .aitutor-popover {
-        transition: none;
-    }
 }
 
 [dir="rtl"] .aitutor-gpt .aitutor-sidebar-open svg {

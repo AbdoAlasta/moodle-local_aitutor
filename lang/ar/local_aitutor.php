@@ -153,7 +153,6 @@ $string['startrevision'] = 'ابدأ المراجعة بالبطاقات';
 $string['stoprec'] = 'إيقاف';
 $string['tabname'] = 'المعلّم الذكي';
 $string['tapreveal'] = 'اضغط للإظهار';
-$string['themetoggle'] = 'التبديل بين الوضع الداكن والفاتح';
 $string['thinking'] = 'جارٍ التفكير...';
 $string['togglesidebar'] = 'إظهار أو إخفاء الشريط الجانبي';
 $string['topics_intro'] = 'هذه بعض الأشياء التي يمكنك السؤال عنها:';

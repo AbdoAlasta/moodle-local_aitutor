@@ -4,7 +4,7 @@ An **AI Tutor** tab inside every course, next to Course / Participants / Grades.
 
 - a chat with a course tutor that answers **only from that course's files** and cites its sources;
 - a ChatGPT-like layout: a collapsible sidebar with New Chat, chat search and Recents, a centred composer with
-  Hint mode and voice input, and a dark / light theme.
+  Hint mode and voice input.
 
 Answers come from the [native-rag-gemini](https://github.com/AbdoAlasta/native-rag-gemini) service, which searches the
 course files indexed by [local_ragindex](https://github.com/AbdoAlasta/moodle-local_ragindex). Moodle's own AI
@@ -28,8 +28,7 @@ providers are not used.
 ### 0.10.0: new look
 - New ChatGPT-like page (from a teammate's redesign): a collapsible left sidebar with **New Chat**, **search chats**
   and **Recents**; a "What would you like to learn today?" greeting with a centred composer while the chat is empty;
-  the course name in the header; a **dark / light theme** button (remembered in the browser); a short disclaimer
-  under the composer.
+  the course name in the header; a short disclaimer under the composer.
 - The composer is a text box that grows with the text (Enter sends, Shift+Enter adds a line), with **voice
   dictation** and a **voice message** button (browser speech recognition, Chrome / Edge / Safari).
 - A **copy** button under each answer, and the last open chat of the course comes back after a reload.
