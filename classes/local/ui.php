@@ -72,7 +72,7 @@ class ui {
             'cardhint', 'questionof', 'pickresourcefirst', 'prompt_summary', 'prompt_flashcards', 'prompt_quiz',
             'prompt_studyplan', 'nav_suggestedtopics', 'chip_project', 'viewall', 'showless', 'yesterday', 'hintbadge',
             'hintanother', 'hintreveal', 'prompt_anotherhint', 'prompt_reveal', 'copy', 'send', 'dictate', 'voicesend',
-            'stoprec', 'listening', 'micdenied', 'micunsupported', 'nochatsfound',
+            'stoprec', 'listening', 'micdenied', 'micunsupported', 'nochatsfound', 'tools', 'hintmode',
         ];
     }
 

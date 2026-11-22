@@ -250,6 +250,7 @@ export const mount = (root, config) => {
         micBtn: root.querySelector(SELECTORS.micBtn),
         hintToggle: root.querySelector(SELECTORS.hintToggle),
         hintLabel: root.querySelector(SELECTORS.hintLabel),
+        toolsBtn: root.querySelector('[data-action="toggle-context"]'),
     };
     // Full page only: the ChatGPT-like layout (centred greeting + composer while the chat is empty).
     const gpt = !!els.hero;
@@ -331,8 +332,16 @@ export const mount = (root, config) => {
         return date.toLocaleDateString(lang, {month: 'short', day: 'numeric'});
     };
 
+    // The header badge and the Tools button both show that Hint mode is on (the switch itself is in the menu).
     const syncHintLabel = () => {
-        els.hintLabel.hidden = !els.hintToggle.checked;
+        const on = els.hintToggle.checked;
+        els.hintLabel.hidden = !on;
+        if (els.toolsBtn) {
+            const label = on ? S.tools + ' (' + S.hintmode + ')' : S.tools;
+            els.toolsBtn.classList.toggle('is-hint', on);
+            els.toolsBtn.setAttribute('title', label);
+            els.toolsBtn.setAttribute('aria-label', label);
+        }
     };
 
     // Shows the selected resource name in the Course Context card (full page only).
@@ -1000,6 +1009,11 @@ export const mount = (root, config) => {
             toggleResourcePicker(els.resource.hidden);
         } else if (action === 'toggle-context') {
             const open = els.contextBody.hidden;
+            if (open) {
+                // The menu opens upward inside the card (which clips overflow): never taller than the room above.
+                const room = target.getBoundingClientRect().top - root.getBoundingClientRect().top - 24;
+                els.contextBody.style.maxHeight = Math.max(160, room) + 'px';
+            }
             els.contextBody.hidden = !open;
             target.setAttribute('aria-expanded', String(open));
         } else if (action === 'toggle-sidebar') {
@@ -1043,7 +1057,7 @@ export const mount = (root, config) => {
         }
     });
 
-    // Close the "+" popover when clicking elsewhere or pressing Escape.
+    // Close the Tools menu when clicking elsewhere or pressing Escape.
     if (gpt) {
         const closePopover = () => {
             els.contextBody.hidden = true;
@@ -1053,7 +1067,7 @@ export const mount = (root, config) => {
             }
         };
         document.addEventListener('click', (e) => {
-            if (!els.contextBody.hidden && !e.target.closest('.aitutor-plus-wrap')) {
+            if (!els.contextBody.hidden && !e.target.closest('.aitutor-tools-wrap')) {
                 closePopover();
             }
         });

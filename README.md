@@ -4,7 +4,7 @@ An **AI Tutor** tab inside every course, next to Course / Participants / Grades.
 
 - a chat with a course tutor that answers **only from that course's files** and cites its sources;
 - a ChatGPT-like layout: a collapsible sidebar with New Chat, chat search and Recents, a centred composer with
-  Hint mode and voice input.
+  voice input and a **Tools** menu (Hint mode, course context, quick actions).
 
 Answers come from the [native-rag-gemini](https://github.com/AbdoAlasta/native-rag-gemini) service, which searches the
 course files indexed by [local_ragindex](https://github.com/AbdoAlasta/moodle-local_ragindex). Moodle's own AI
@@ -34,11 +34,11 @@ providers are not used.
 - A **copy** button under each answer, and the last open chat of the course comes back after a reload.
 - The AI Tutor tab now sits right after "Course" in the course tabs, so it is not hidden under "More". The page uses
   the same layout as the Grades tab.
-- Hint mode, whole-chat memory, the hourly limit and the RAG client are unchanged. The Hint mode switch stays in the
-  composer, before the text box.
-- Not reachable in this version: the "+" menu (Course Context resource picker and Quick Actions) is hidden because it
-  looked like file upload, and the old side menu (Suggested Topics, Course Resources, Study Plan, Practice Quiz,
-  Assignments Help, Revision Mode) has no buttons in the new layout.
+- Hint mode, whole-chat memory, the hourly limit and the RAG client are unchanged.
+- A **Tools** button (sparkles icon) at the left of the composer opens a menu with the **Hint mode** switch, the
+  **Course context** resource picker and **Quick actions**: Use lecture context, Summarize, Flashcards, MCQs and
+  **Study Plan**. A dot on the button shows when Hint mode is on; the "Hint mode" badge stays in the chat header.
+- Not reachable in this version: Suggested Topics, Assignments Help and Revision Mode from the old side menu.
 
 ### 0.9.0: hint mode
 - A **Hint mode** toggle in the chat, saved per chat. With it on, a typed question gets one hint and a guiding question

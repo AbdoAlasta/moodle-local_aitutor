@@ -1252,7 +1252,6 @@ body.local-aitutor-page.limitedwidth #page.drawers .main-inner {
     background: var(--g-composer);
 }
 
-.aitutor-gpt .aitutor-plusbtn,
 .aitutor-gpt .aitutor-micbtn {
     display: inline-flex;
     flex: 0 0 auto;
@@ -1272,9 +1271,7 @@ body.local-aitutor-page.limitedwidth #page.drawers .main-inner {
     color: var(--g-muted);
 }
 
-.aitutor-gpt .aitutor-plusbtn:hover,
 .aitutor-gpt .aitutor-micbtn:hover,
-.aitutor-gpt .aitutor-plusbtn[aria-expanded="true"],
 .aitutor-gpt .aitutor-micbtn[aria-pressed="true"] {
     background: var(--g-hover);
     color: var(--g-text);
@@ -1301,9 +1298,74 @@ body.local-aitutor-page.limitedwidth #page.drawers .main-inner {
     display: none;
 }
 
-.aitutor-gpt .aitutor-plus-wrap {
+.aitutor-gpt .aitutor-tools-wrap {
     position: relative;
     flex: 0 0 auto;
+}
+
+/* Tools button: sparkles icon + "Tools" (icon only on phones); a dot shows Hint mode is on. */
+.aitutor-gpt .aitutor-toolsbtn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    height: 40px;
+    min-width: 40px;
+    padding: 0 0.8rem 0 0.65rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--g-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.aitutor-gpt .aitutor-toolsbtn svg {
+    flex: 0 0 auto;
+}
+
+.aitutor-gpt .aitutor-toolsbtn:hover,
+.aitutor-gpt .aitutor-toolsbtn[aria-expanded="true"] {
+    background: var(--g-hover);
+    color: var(--g-text);
+}
+
+.aitutor-gpt .aitutor-toolsbtn.is-hint {
+    color: var(--g-brand);
+}
+
+.aitutor-gpt .aitutor-toolsbtn-dot {
+    display: none;
+    position: absolute;
+    top: 7px;
+    inset-inline-start: 24px;
+    width: 8px;
+    height: 8px;
+    border: 2px solid var(--g-composer);
+    border-radius: 50%;
+    background: var(--g-brand);
+}
+
+.aitutor-gpt .aitutor-toolsbtn.is-hint .aitutor-toolsbtn-dot {
+    display: block;
+}
+
+@media (max-width: 767.98px) {
+    .aitutor-gpt .aitutor-toolsbtn {
+        justify-content: center;
+        width: 40px;
+        padding: 0;
+    }
+
+    .aitutor-gpt .aitutor-toolsbtn-label {
+        display: none;
+    }
+
+    .aitutor-gpt .aitutor-toolsbtn-dot {
+        inset-inline-start: 22px;
+    }
 }
 
 .aitutor-gpt .aitutor-input {
@@ -1401,8 +1463,10 @@ body.local-aitutor-page.limitedwidth #page.drawers .main-inner {
     text-align: center;
 }
 
-/* "+" menu */
+/* Tools menu (opens upward; app.js caps its height to the room above the composer) */
 .aitutor-gpt .aitutor-popover {
+    overflow-y: auto;
+    overscroll-behavior: contain;
     position: absolute;
     inset-inline-start: 0;
     bottom: calc(100% + 0.7rem);
@@ -1558,14 +1622,15 @@ body.local-aitutor-page.limitedwidth #page.drawers .main-inner {
 
 .aitutor-gpt .aitutor-hinttoggle {
     display: flex;
-    align-self: flex-end;
     align-items: center;
-    gap: 0.45rem;
-    min-height: 40px;
-    /* Label first, then the switch: no Bootstrap form-switch left padding, a little room before the text box. */
-    padding-inline: 0.75rem 0.4rem;
-    color: var(--g-muted);
-    font-size: 0.85rem;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 0;
+    /* Inside the Tools menu: label first, switch at the end, no Bootstrap form-switch left padding. */
+    padding: 0;
+    color: var(--g-text);
+    font-size: 0.9rem;
+    font-weight: 600;
 }
 
 .aitutor-gpt .aitutor-hinttoggle .form-check-input {
@@ -1584,8 +1649,3 @@ body.local-aitutor-page.limitedwidth #page.drawers .main-inner {
     background: var(--g-brand);
 }
 
-@media (max-width: 767.98px) {
-    .aitutor-gpt .aitutor-hinttoggle .form-check-label {
-        font-size: 0.75rem;
-    }
-}
