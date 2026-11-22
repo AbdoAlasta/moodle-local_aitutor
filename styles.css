@@ -1471,7 +1471,7 @@ body.local-aitutor-page.limitedwidth #page.drawers .main-inner {
     inset-inline-start: 0;
     bottom: calc(100% + 0.7rem);
     z-index: 20;
-    width: min(340px, 85vw);
+    width: min(390px, 90vw);
     padding: 0.9rem;
     border: 1px solid var(--g-popover-border);
     border-radius: 1rem;
@@ -1485,34 +1485,54 @@ body.local-aitutor-page.limitedwidth #page.drawers .main-inner {
     color: var(--g-muted);
 }
 
-.aitutor-gpt .aitutor-popover .custom-select {
-    border-color: var(--g-line-strong);
-    background-color: var(--g-bg);
-    color: var(--g-text);
-}
-
-.aitutor-gpt .aitutor-popover .aitutor-hint {
-    margin: 0.3rem 0 0;
-    color: var(--g-muted);
-    font-weight: 400;
-}
-
-.aitutor-gpt .aitutor-popover .aitutor-link {
-    color: var(--g-link);
-    text-decoration: none;
-}
-
 .aitutor-gpt .aitutor-popover-sep {
     height: 1px;
     margin: 0.8rem 0;
     background: var(--g-line);
 }
 
+.aitutor-gpt .aitutor-quick {
+    gap: 0.5rem;
+}
+
 .aitutor-gpt .aitutor-quick-btn {
+    gap: 0.45rem;
+    min-width: 0;
+    padding: 0.5rem 0.75rem;
     border: 1px solid var(--g-line);
-    border-radius: 0.65rem;
-    background: transparent;
+    border-radius: 999px;
+    background: var(--g-popover);
     color: var(--g-text);
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.aitutor-gpt .aitutor-quick-btn svg {
+    flex: 0 0 auto;
+}
+
+.aitutor-gpt .aitutor-quick-btn span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 767.98px) {
+    /* Phones: the menu spans the composer (its positioned parent) so it never pokes out of the card. */
+    .aitutor-gpt .aitutor-tools-wrap {
+        position: static;
+    }
+
+    .aitutor-gpt .aitutor-popover {
+        inset-inline: 0;
+        width: auto;
+    }
+
+    /* Narrow menu: let a long label wrap instead of cutting it. */
+    .aitutor-gpt .aitutor-quick-btn {
+        white-space: normal;
+        line-height: 1.2;
+    }
 }
 
 .aitutor-gpt .aitutor-quick-btn:hover:not(:disabled),
@@ -1629,7 +1649,7 @@ body.local-aitutor-page.limitedwidth #page.drawers .main-inner {
     /* Inside the Tools menu: label first, switch at the end, no Bootstrap form-switch left padding. */
     padding: 0;
     color: var(--g-text);
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
 }
 

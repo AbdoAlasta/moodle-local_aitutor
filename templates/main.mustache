@@ -88,33 +88,12 @@
                                 <input type="checkbox" role="switch" class="form-check-input" id="aitutor-hintmode" data-region="hint-toggle">
                             </div>
                             <div class="aitutor-popover-sep"></div>
-                            <div class="aitutor-label">{{#str}}selectedresource, local_aitutor{{/str}}</div>
-                            <div class="aitutor-resource-row">
-                                {{#pix}}i/files, core, {{/pix}}
-                                <span class="aitutor-resource-name" data-region="resource-name">{{#str}}noresource_selected, local_aitutor{{/str}}</span>
-                                <button type="button" class="aitutor-link" data-action="change-resource">{{#str}}change, local_aitutor{{/str}}</button>
-                            </div>
-                            <label for="aitutor-resource" class="sr-only">{{#str}}selectedresource, local_aitutor{{/str}}</label>
-                            <select id="aitutor-resource" class="custom-select form-control-sm mt-2" data-region="resource-select" hidden>
-                                <option value="0">{{#str}}noresource_selected, local_aitutor{{/str}}</option>
-                            </select>
-                            <div class="aitutor-usecontext">
-                                <div class="form-check mb-0">
-                                    <input type="checkbox" class="form-check-input" id="aitutor-useresource" data-region="use-resource" checked>
-                                    <label class="form-check-label" for="aitutor-useresource">{{#str}}usecontext, local_aitutor{{/str}}</label>
-                                </div>
-                                <span class="aitutor-info" title="{{#str}}usecontext_info, local_aitutor{{/str}}" tabindex="0"
-                                      aria-label="{{#str}}usecontext_info, local_aitutor{{/str}}">{{#pix}}i/info, core, {{/pix}}</span>
-                            </div>
-                            <div class="aitutor-hint small">{{#str}}usecontext_hint, local_aitutor{{/str}}</div>
-                            <div class="aitutor-popover-sep"></div>
                             <div class="aitutor-label">{{#str}}quickactions, local_aitutor{{/str}}</div>
                             <div class="aitutor-quick">
-                                <button type="button" class="aitutor-quick-btn" data-action="quick" data-mode="context">{{#pix}}i/files, core, {{/pix}}<span>{{#str}}qa_usecontext, local_aitutor{{/str}}</span></button>
-                                <button type="button" class="aitutor-quick-btn" data-action="quick" data-mode="summary">{{#pix}}i/report, core, {{/pix}}<span>{{#str}}qa_summarize, local_aitutor{{/str}}</span></button>
-                                <button type="button" class="aitutor-quick-btn" data-action="quick" data-mode="flashcards">{{#pix}}i/new, core, {{/pix}}<span>{{#str}}qa_flashcards, local_aitutor{{/str}}</span></button>
-                                <button type="button" class="aitutor-quick-btn" data-action="quick" data-mode="quiz">{{#pix}}i/questions, core, {{/pix}}<span>{{#str}}qa_mcqs, local_aitutor{{/str}}</span></button>
-                                <button type="button" class="aitutor-quick-btn" data-action="quick" data-mode="studyplan">{{#pix}}i/calendar, core, {{/pix}}<span>{{#str}}nav_studyplan, local_aitutor{{/str}}</span></button>
+                                <button type="button" class="aitutor-quick-btn" data-action="quick" data-mode="summary"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span>{{#str}}qa_summarizecourse, local_aitutor{{/str}}</span></button>
+                                <button type="button" class="aitutor-quick-btn" data-action="quick" data-mode="flashcards"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg><span>{{#str}}qa_flashcards, local_aitutor{{/str}}</span></button>
+                                <button type="button" class="aitutor-quick-btn" data-action="quick" data-mode="quiz"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg><span>{{#str}}qa_quiz, local_aitutor{{/str}}</span></button>
+                                <button type="button" class="aitutor-quick-btn" data-action="quick" data-mode="studyplan"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span>{{#str}}nav_studyplan, local_aitutor{{/str}}</span></button>
                             </div>
                         </div>
                     </div>

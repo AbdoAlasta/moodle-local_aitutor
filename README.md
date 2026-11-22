@@ -4,7 +4,7 @@ An **AI Tutor** tab inside every course, next to Course / Participants / Grades.
 
 - a chat with a course tutor that answers **only from that course's files** and cites its sources;
 - a ChatGPT-like layout: a collapsible sidebar with New Chat, chat search and Recents, a centred composer with
-  voice input and a **Tools** menu (Hint mode, course context, quick actions).
+  voice input and a **Tools** menu (Hint mode and quick actions).
 
 Answers come from the [native-rag-gemini](https://github.com/AbdoAlasta/native-rag-gemini) service, which searches the
 course files indexed by [local_ragindex](https://github.com/AbdoAlasta/moodle-local_ragindex). Moodle's own AI
@@ -15,7 +15,7 @@ providers are not used.
 ## How it works
 
 - Each question goes to `POST /query` of the RAG service with the course id, so it searches only that course's files.
-- A selected resource adds its name to the question to steer the search. Cited sources are listed under each answer.
+- Questions search the whole course (the page has no resource picker). Cited sources are listed under each answer.
 - Quiz, flashcards, study plan, summary and topics ask for JSON and validate it before display. If the service does
   not follow the format, the reply is shown as plain text.
 - Each chat remembers the whole conversation: a running summary of older messages plus the latest exchanges.
@@ -35,9 +35,11 @@ providers are not used.
 - The AI Tutor tab now sits right after "Course" in the course tabs, so it is not hidden under "More". The page uses
   the same layout as the Grades tab.
 - Hint mode, whole-chat memory, the hourly limit and the RAG client are unchanged.
-- A **Tools** button (sparkles icon) at the left of the composer opens a menu with the **Hint mode** switch, the
-  **Course context** resource picker and **Quick actions**: Use lecture context, Summarize, Flashcards, MCQs and
-  **Study Plan**. A dot on the button shows when Hint mode is on; the "Hint mode" badge stays in the chat header.
+- A **Tools** button (sparkles icon) at the left of the composer opens a menu with the **Hint mode** switch and four
+  **Quick actions**: **Summarize course** (the whole course's files, no resource needed), **Create flashcards**,
+  **Generate Quiz** and **Study Plan**. A dot on the button shows when Hint mode is on; the "Hint mode" badge stays in
+  the chat header.
+- Removed: the course-context resource picker ("Use this context") and the "Use lecture context" quick action.
 - Not reachable in this version: Suggested Topics, Assignments Help and Revision Mode from the old side menu.
 
 ### 0.9.0: hint mode

@@ -64,13 +64,12 @@ class ui {
      */
     public static function string_ids(): array {
         return [
-            'welcome', 'tryasking', 'thinking', 'error_generic', 'you', 'tutorname', 'recentchats_empty', 'nextquestion',
-            'seeresults', 'correct', 'incorrect', 'explanation', 'scoreis', 'tapreveal', 'startrevision', 'vieworiginal',
-            'downloadsummary', 'includes', 'resourcepick', 'resourcesintro', 'noresources', 'contextchanged',
-            'assignmenthelp_intro', 'topics_intro', 'revision_intro', 'chip_main', 'chip_summarize', 'chip_practice',
-            'chip_quiz', 'chip_plan', 'chip_takeaways', 'noresource_selected', 'newchat', 'retry', 'flashcard', 'restart',
-            'cardhint', 'questionof', 'pickresourcefirst', 'prompt_summary', 'prompt_flashcards', 'prompt_quiz',
-            'prompt_studyplan', 'nav_suggestedtopics', 'chip_project', 'viewall', 'showless', 'yesterday', 'hintbadge',
+            'welcome', 'tryasking', 'thinking', 'error_generic', 'you', 'tutorname', 'recentchats_empty',
+            'nextquestion', 'seeresults', 'correct', 'incorrect', 'explanation', 'scoreis', 'tapreveal',
+            'startrevision', 'vieworiginal', 'downloadsummary', 'includes', 'assignmenthelp_intro', 'topics_intro',
+            'revision_intro', 'chip_main', 'chip_summarize', 'chip_practice', 'chip_quiz', 'chip_plan',
+            'chip_takeaways', 'newchat', 'retry', 'flashcard', 'restart', 'cardhint', 'questionof', 'prompt_flashcards',
+            'prompt_quiz', 'prompt_studyplan', 'chip_project', 'viewall', 'showless', 'yesterday', 'hintbadge',
             'hintanother', 'hintreveal', 'prompt_anotherhint', 'prompt_reveal', 'copy', 'send', 'dictate', 'voicesend',
             'stoprec', 'listening', 'micdenied', 'micunsupported', 'nochatsfound', 'tools', 'hintmode',
         ];
