@@ -1301,13 +1301,16 @@ body.local-aitutor-page.limitedwidth #page.drawers .main-inner {
     min-width: 0;
     max-height: 200px;
     height: 40px;
-    padding: 0.55rem 0.4rem;
+    /* 2 x 8px padding + one 24px line = 40px, so a single line never overflows. */
+    padding: 0.5rem 0.4rem;
     border: 0;
     border-radius: 0;
     background: transparent;
     color: var(--g-text);
     font-size: 1rem;
     line-height: 1.5;
+    /* No scrollbar while the text fits; the autosize code turns scrolling on at the max height. */
+    overflow-y: hidden;
     resize: none;
     box-shadow: none;
     outline: 0;
@@ -1386,10 +1389,6 @@ body.local-aitutor-page.limitedwidth #page.drawers .main-inner {
     color: var(--g-muted);
     font-size: 0.75rem;
     text-align: center;
-}
-
-.aitutor-gpt.is-empty .aitutor-disclaimer {
-    display: none;
 }
 
 /* "+" menu */

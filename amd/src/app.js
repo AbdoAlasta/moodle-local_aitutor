@@ -1001,6 +1001,8 @@ export const mount = (root, config) => {
     const autosize = () => {
         els.input.style.height = 'auto';
         els.input.style.height = Math.min(els.input.scrollHeight, 200) + 'px';
+        // Scroll only once the text is taller than the box can grow.
+        els.input.style.overflowY = els.input.scrollHeight > 200 ? 'auto' : 'hidden';
     };
     if (els.input.tagName === 'TEXTAREA') {
         els.input.addEventListener('input', () => {
