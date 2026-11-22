@@ -626,6 +626,15 @@ body.local-aitutor-page.limitedwidth #page.drawers .main-inner {
     max-width: 100%;
 }
 
+/* Desktop: nothing useful is below the tutor, so drop Boost's space under the page content and let the card
+   (fitted to the window by index.php) end just above the bottom of the window. */
+@media (min-width: 768px) {
+    body.local-aitutor-page #page.drawers .main-inner {
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+}
+
 .aitutor-gpt {
     /* Accent colour = the site's own theme colour (falls back to the MTI teal). */
     --g-brand: var(--bs-primary, #0e6b75);
@@ -667,7 +676,8 @@ body.local-aitutor-page.limitedwidth #page.drawers .main-inner {
     gap: 0;
     width: 100%;
     height: max(560px, calc(100vh - 17rem));
-    height: max(560px, calc(100dvh - 17rem));
+    /* Desktop: --aitutor-fit is set by index.php so the card ends at the bottom of the window. */
+    height: var(--aitutor-fit, max(560px, calc(100dvh - 17rem)));
     min-height: 0;
     margin: 1rem 0;
     overflow: hidden;

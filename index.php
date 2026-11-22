@@ -52,6 +52,44 @@ $config = [
 ];
 
 $PAGE->requires->js_call_amd('local_aitutor/app', 'init', [$config]);
+// Fit the tutor card to the window on desktop, so the messages and Recents scroll inside it and the page itself
+// stays put. Boost scrolls the #page element, not the window, and #page also holds the footer below the tutor: the
+// card is first sized to the window, then shrunk by whatever still overflows the scroller. It is fitted again when
+// the window is resized or the card's width changes (course index drawer opened or closed).
+$PAGE->requires->js_amd_inline("
+    var root = document.getElementById('aitutor-root');
+    var page = document.getElementById('page');
+    var scroller = page && /auto|scroll/.test(getComputedStyle(page).overflowY) ? page : document.scrollingElement;
+    var fit = function() {
+        if (!root) {
+            return;
+        }
+        root.style.removeProperty('--aitutor-fit');
+        if (window.innerWidth < 768) {
+            return; // Phones: stacked layout, the page scrolls.
+        }
+        scroller.scrollTop = 0;
+        var gap = parseFloat(getComputedStyle(root).marginBottom) || 0;
+        var height = Math.max(360, window.innerHeight - root.getBoundingClientRect().top - gap);
+        root.style.setProperty('--aitutor-fit', height + 'px');
+        var over = scroller.scrollHeight - scroller.clientHeight;
+        if (over > 0) {
+            root.style.setProperty('--aitutor-fit', Math.max(360, height - over) + 'px');
+        }
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    window.addEventListener('load', fit);
+    if (root && window.ResizeObserver) {
+        var width = root.offsetWidth;
+        new ResizeObserver(function() {
+            if (root.offsetWidth !== width) {
+                width = root.offsetWidth;
+                fit();
+            }
+        }).observe(root);
+    }
+");
 
 $modes = \local_aitutor\local\ui::modes();
 
