@@ -60,7 +60,14 @@ class hook_callbacks {
             new \pix_icon('i/course', '')
         );
         $node->showinsecondarynavigation = true;
-        $hook->get_secondaryview()->add_node($node);
+        // Moodle shows only the first 5 tabs and hides the rest under "More". Nodes added by plugins
+        // go to the END of the list, which is always inside "More", so insert the tab right after
+        // "Course" to keep it visible to students.
+        $secondary = $hook->get_secondaryview();
+        $keys = $secondary->get_children_key_list();
+        $pos = array_search('coursehome', $keys);
+        $beforekey = ($pos !== false && isset($keys[$pos + 1])) ? $keys[$pos + 1] : null;
+        $secondary->add_node($node, $beforekey);
 
         if ($PAGE->has_set_url() && $PAGE->url->compare(new \moodle_url('/local/aitutor/index.php'), URL_MATCH_BASE)) {
             $node->make_active();

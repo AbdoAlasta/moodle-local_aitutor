@@ -68,49 +68,17 @@
 }
 
 /* ---- Conversation ---- */
-/* ".aitutor" in front: Bootstrap's .card (loaded after this file) would otherwise reset the height to the content. */
-.aitutor .aitutor-main {
+.aitutor-main {
     display: flex;
     flex-direction: column;
-    /* --aitutor-fit is the window height below the tutor (set in index.php): only the messages scroll. */
-    height: var(--aitutor-fit, min(72vh, 720px));
-    min-height: 360px;
+    height: min(72vh, 720px);
+    min-height: 460px;
     overflow: hidden;
 }
 
 .aitutor-main-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
     padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--aitutor-border);
-}
-
-.aitutor-hintlabel,
-.aitutor-hintbadge {
-    display: inline-block;
-    padding: 0.1rem 0.6rem;
-    border-radius: 999px;
-    background: var(--aitutor-primary);
-    color: #fff;
-    font-size: 0.75rem;
-    white-space: nowrap;
-}
-
-.aitutor-hintlabel[hidden] {
-    display: none;
-}
-
-.aitutor-hintbadge {
-    margin-bottom: 0.4rem;
-}
-
-.aitutor-hinttoggle {
-    flex: 0 0 auto;
-    align-self: center;
-    margin-bottom: 0;
-    white-space: nowrap;
 }
 
 .aitutor-messages {
@@ -613,14 +581,6 @@
 }
 
 /* ---- Responsive ---- */
-@media (min-width: 1200px) {
-    /* The right column scrolls on its own too, so a long Recent Chats list does not make the page scroll. */
-    .aitutor-side {
-        max-height: var(--aitutor-fit, none);
-        overflow-y: auto;
-    }
-}
-
 @media (max-width: 1199.98px) {
     .local-aitutor-page .aitutor {
         grid-template-columns: 180px minmax(0, 1fr);
@@ -642,11 +602,6 @@
         position: static;
     }
 
-    /* Stacked on phones: the sidebar sits above the chat, so the window-fitted height would not fit. */
-    .aitutor .aitutor-main {
-        height: min(72vh, 720px);
-    }
-
     .aitutor-nav {
         display: flex;
         gap: 0.25rem;
@@ -659,5 +614,1024 @@
 
     .aitutor-col {
         max-width: 92%;
+    }
+}
+
+/* =====================================================================================
+   AI Tutor full page: ChatGPT look-alike (dark). Everything is scoped to .aitutor-gpt.
+   ===================================================================================== */
+/* The tutor lives inside the normal course page (same header + tabs as Course / Grades). Use the full width. */
+body.local-aitutor-page #page.drawers .main-inner,
+body.local-aitutor-page.limitedwidth #page.drawers .main-inner {
+    max-width: 100%;
+}
+
+.aitutor-gpt {
+    /* Accent colour = the site's own theme colour (falls back to the MTI teal). */
+    --g-brand: var(--bs-primary, #0e6b75);
+    --g-bg: #fff;
+    --g-sidebar: #f3f6f7;
+    --g-composer: #f1f5f6;
+    --g-surface: #e8f0f2;
+    --g-hover: #e6eef0;
+    --g-border: #dfe6e9;
+    --g-text: #1f2933;
+    --g-muted: #667785;
+    --g-blue: var(--g-brand);
+    --g-hover-strong: #d9e5e8;
+    --g-line: #d3dde1;
+    --g-line-strong: #b6c5cb;
+    --g-outline: #9fb2ba;
+    --g-code-bg: #f5f8f9;
+    --g-popover: #fff;
+    --g-popover-border: #dfe6e9;
+    --g-popover-hover: #eef3f5;
+    --g-scroll: #c8d4d9;
+    --g-btn-bg: var(--g-brand);
+    --g-btn-fg: #fff;
+    --g-link: var(--g-brand);
+    --g-danger: #dc2626;
+    --g-ring: rgba(0, 0, 0, 0.12);
+    --g-shadow: rgba(15, 35, 50, 0.14);
+    color-scheme: light;
+    --aitutor-primary: var(--g-brand);
+    --aitutor-primary-soft: #e6eef0;
+    --aitutor-border: #dfe6e9;
+    --aitutor-muted: #667785;
+}
+
+.local-aitutor-page .aitutor.aitutor-gpt {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 0;
+    width: 100%;
+    height: max(560px, calc(100vh - 17rem));
+    height: max(560px, calc(100dvh - 17rem));
+    min-height: 0;
+    margin: 1rem 0;
+    overflow: hidden;
+    border: 1px solid var(--g-border);
+    border-radius: 0.5rem;
+    background: var(--g-bg);
+    color: var(--g-text);
+    font-family: -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, "Noto Sans Arabic", sans-serif;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.aitutor-gpt *,
+.aitutor-gpt *::before,
+.aitutor-gpt *::after {
+    box-sizing: border-box;
+}
+
+.aitutor-gpt button,
+.aitutor-gpt a,
+.aitutor-gpt textarea,
+.aitutor-gpt input {
+    font-family: inherit;
+}
+
+.aitutor-gpt button,
+.aitutor-gpt a {
+    appearance: none;
+    -webkit-appearance: none;
+    box-shadow: none;
+    text-decoration: none;
+}
+
+.aitutor-gpt .aitutor-iconbtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 0.6rem;
+    background: transparent;
+    color: var(--g-muted);
+    cursor: pointer;
+}
+
+.aitutor-gpt .aitutor-iconbtn:hover,
+.aitutor-gpt .aitutor-iconbtn:focus-visible,
+.aitutor-gpt .aitutor-iconbtn[aria-expanded="true"][data-action="search"] {
+    background: var(--g-hover);
+    color: var(--g-text);
+}
+
+/* ---------------- Sidebar ---------------- */
+.aitutor-gpt .aitutor-sidebar {
+    position: static;
+    display: flex;
+    flex: 0 0 272px;
+    flex-direction: column;
+    width: 272px;
+    height: 100%;
+    padding: 0.5rem;
+    gap: 0;
+    border: 0;
+    border-inline-end: 1px solid var(--g-border);
+    border-radius: 0;
+    background: var(--g-sidebar);
+    box-shadow: none;
+    overflow: hidden;
+    transition: margin 0.2s ease, opacity 0.2s ease;
+}
+
+.aitutor-gpt.is-sidebar-collapsed .aitutor-sidebar {
+    margin-inline-start: -273px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.aitutor-gpt .aitutor-sidebar-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    padding: 0 0.25rem 0 0.6rem;
+}
+
+.aitutor-gpt .aitutor-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+    padding: 0;
+    color: var(--g-text);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.aitutor-gpt .aitutor-brand-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+}
+
+.aitutor-gpt .aitutor-sidebar-tools {
+    display: flex;
+    align-items: center;
+}
+
+.aitutor-gpt .aitutor-newchat {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    width: 100%;
+    margin: 0.25rem 0 0;
+    padding: 0.6rem 0.7rem;
+    border: 0;
+    border-radius: 0.65rem;
+    background: var(--g-hover);
+    color: var(--g-text);
+    font-size: 0.95rem;
+    font-weight: 400;
+    text-align: start;
+    cursor: pointer;
+}
+
+.aitutor-gpt .aitutor-newchat:hover,
+.aitutor-gpt .aitutor-newchat:focus-visible {
+    background: var(--g-hover-strong);
+    color: var(--g-text);
+}
+
+.aitutor-gpt .aitutor-search {
+    padding: 0.5rem 0 0;
+}
+
+.aitutor-gpt .aitutor-search-input {
+    width: 100%;
+    height: 38px;
+    padding: 0 0.8rem;
+    border: 1px solid var(--g-border);
+    border-radius: 0.65rem;
+    background: var(--g-composer);
+    color: var(--g-text);
+    font-size: 0.9rem;
+    outline: 0;
+}
+
+.aitutor-gpt .aitutor-search-input:focus {
+    border-color: var(--g-line-strong);
+}
+
+.aitutor-gpt .aitutor-sidebar-section {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin-top: 1.25rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--g-scroll) transparent;
+}
+
+.aitutor-gpt .aitutor-sidebar-heading {
+    margin: 0;
+    padding: 0 0.7rem 0.4rem;
+    color: var(--g-muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.aitutor-gpt .aitutor-recent {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.aitutor-gpt .aitutor-recent li {
+    margin: 0;
+    padding: 0;
+}
+
+.aitutor-gpt .aitutor-recent-item {
+    display: block;
+    width: 100%;
+    padding: 0.55rem 0.7rem;
+    border: 0;
+    border-radius: 0.65rem;
+    background: transparent;
+    color: var(--g-text);
+    font-size: 0.95rem;
+    line-height: 1.35;
+    text-align: start;
+    cursor: pointer;
+}
+
+.aitutor-gpt .aitutor-recent-item:hover,
+.aitutor-gpt .aitutor-recent-item:focus-visible,
+.aitutor-gpt .aitutor-recent-item.is-active {
+    background: var(--g-hover);
+}
+
+.aitutor-gpt .aitutor-recent-title {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.aitutor-gpt .aitutor-recent-time {
+    display: none;
+}
+
+.aitutor-gpt .aitutor-recent-empty {
+    padding: 0.55rem 0.7rem;
+    color: var(--g-muted);
+    font-size: 0.9rem;
+    list-style: none;
+}
+
+.aitutor-gpt .aitutor-sidebar-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+    padding: 0.7rem 0.4rem 0.3rem;
+    border-top: 1px solid var(--g-border);
+}
+
+.aitutor-gpt .aitutor-pill {
+    flex: 1 1 auto;
+    padding: 0.5rem 0.85rem;
+    text-align: center;
+    border: 1px solid var(--g-line);
+    border-radius: 999px;
+    color: var(--g-text);
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.aitutor-gpt .aitutor-pill:hover,
+.aitutor-gpt .aitutor-pill:focus-visible {
+    background: var(--g-hover);
+    color: var(--g-text);
+}
+
+/* ---------------- Main ---------------- */
+.aitutor-gpt .aitutor-main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+    background: var(--g-bg);
+    box-shadow: none;
+    overflow: hidden;
+}
+
+.aitutor-gpt .aitutor-main-header {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 0.5rem;
+    height: 52px;
+    padding: 0 1rem;
+    border: 0;
+}
+
+.aitutor-gpt .aitutor-sidebar-open {
+    display: none;
+}
+
+.aitutor-gpt.is-sidebar-collapsed .aitutor-sidebar-open {
+    display: inline-flex;
+}
+
+.aitutor-gpt .aitutor-chat-title {
+    overflow: hidden;
+    margin: 0;
+    color: var(--g-muted);
+    font-family: inherit;
+    font-size: 1.1rem;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.aitutor-gpt .aitutor-course-pill {
+    max-width: 45%;
+    margin-inline-start: auto;
+    overflow: hidden;
+    color: var(--g-link);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.aitutor-gpt .aitutor-stage {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.aitutor-gpt.is-empty .aitutor-stage {
+    justify-content: center;
+}
+
+/* Conversation */
+.aitutor-gpt .aitutor-messages {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 1.25rem;
+    width: 100%;
+    max-width: 1100px;
+    margin-inline: auto;
+    padding: 1rem 1.5rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--g-scroll) transparent;
+}
+
+.aitutor-gpt.is-empty .aitutor-messages {
+    display: none;
+}
+
+.aitutor-gpt .aitutor-row {
+    display: flex;
+    flex-shrink: 0;
+    gap: 0;
+    max-width: 100%;
+}
+
+.aitutor-gpt .aitutor-avatar {
+    display: none;
+}
+
+.aitutor-gpt .aitutor-col {
+    max-width: 100%;
+    min-width: 0;
+}
+
+.aitutor-gpt .aitutor-row-tutor {
+    justify-content: flex-start;
+}
+
+.aitutor-gpt .aitutor-row-tutor .aitutor-col {
+    flex: 0 1 auto;
+    max-width: 78%;
+}
+
+/* Quiz, flashcards, study plan... need more room. */
+.aitutor-gpt .aitutor-row-tutor .aitutor-col:has(.aitutor-bubble-wide) {
+    flex: 1 1 auto;
+    max-width: 92%;
+}
+
+.aitutor-gpt .aitutor-row-user {
+    justify-content: flex-end;
+}
+
+.aitutor-gpt .aitutor-row-user .aitutor-col {
+    max-width: 70%;
+}
+
+.aitutor-gpt .aitutor-row-tutor .aitutor-bubble {
+    padding: 0.75rem 1.15rem;
+    border: 1px solid var(--g-border);
+    border-radius: 1.25rem;
+    border-start-start-radius: 0.35rem;
+    background: var(--g-composer);
+}
+
+.aitutor-gpt .aitutor-row-user .aitutor-bubble {
+    border-end-end-radius: 0.35rem;
+}
+
+.aitutor-gpt .aitutor-row-tutor .aitutor-bubble-wide {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.aitutor-gpt .aitutor-row-tutor .aitutor-bubble-error {
+    border-color: transparent;
+    background: rgba(220, 38, 38, 0.15);
+}
+
+.aitutor-gpt .aitutor-bubble {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--g-text);
+    font-size: 1rem;
+    line-height: 1.75;
+    overflow-wrap: anywhere;
+}
+
+.aitutor-gpt .aitutor-row-user .aitutor-bubble {
+    padding: 0.65rem 1.1rem;
+    border-radius: 1.5rem;
+    background: var(--g-surface);
+    white-space: pre-wrap;
+}
+
+.aitutor-gpt .aitutor-bubble-error {
+    padding: 0.65rem 1rem;
+    border-radius: 0.9rem;
+    background: rgba(220, 38, 38, 0.15);
+    color: var(--g-danger);
+}
+
+.aitutor-gpt .aitutor-typing {
+    color: var(--g-muted);
+}
+
+.aitutor-gpt .aitutor-md p {
+    margin: 0 0 0.9rem;
+}
+
+.aitutor-gpt .aitutor-md ul,
+.aitutor-gpt .aitutor-md ol {
+    padding-inline-start: 1.5rem;
+    margin-bottom: 0.9rem;
+}
+
+.aitutor-gpt .aitutor-md pre {
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--g-border);
+    border-radius: 0.8rem;
+    background: var(--g-code-bg);
+}
+
+.aitutor-gpt .aitutor-md code {
+    padding: 0.1em 0.35em;
+    border-radius: 0.3rem;
+    background: var(--g-surface);
+    color: var(--g-text);
+}
+
+.aitutor-gpt .aitutor-md pre code {
+    padding: 0;
+    background: transparent;
+}
+
+.aitutor-gpt .aitutor-msg-actions {
+    margin-top: 0.2rem;
+}
+
+.aitutor-gpt .aitutor-copy {
+    width: 32px;
+    height: 32px;
+}
+
+.aitutor-gpt .aitutor-copy.is-done {
+    color: var(--g-brand);
+}
+
+/* Cards (study plan / quiz / flashcards / summary) */
+.aitutor-gpt .aitutor-card,
+.aitutor-gpt .aitutor-resource {
+    border-color: var(--g-border);
+    border-radius: 1rem;
+    background: var(--g-composer);
+    color: var(--g-text);
+}
+
+.aitutor-gpt .aitutor-includes,
+.aitutor-gpt .aitutor-flash {
+    border-color: var(--g-border);
+    background: var(--g-bg);
+    color: var(--g-text);
+}
+
+.aitutor-gpt .aitutor-flash.is-open,
+.aitutor-gpt .aitutor-resource.is-active,
+.aitutor-gpt .aitutor-resource:hover {
+    border-color: var(--g-outline);
+    background: var(--g-hover);
+}
+
+.aitutor-gpt .aitutor-option {
+    border-color: var(--g-border);
+}
+
+.aitutor-gpt .aitutor-option:hover {
+    background: var(--g-hover);
+}
+
+.aitutor-gpt .aitutor-option.is-correct {
+    border-color: #16a34a;
+    background: rgba(22, 163, 74, 0.18);
+}
+
+.aitutor-gpt .aitutor-option.is-wrong {
+    border-color: #dc2626;
+    background: rgba(220, 38, 38, 0.18);
+}
+
+.aitutor-gpt .btn-outline-secondary {
+    border-color: var(--g-line);
+    color: var(--g-text);
+}
+
+.aitutor-gpt .btn-primary {
+    border-color: var(--g-btn-bg);
+    background: var(--g-btn-bg);
+    color: var(--g-btn-fg);
+}
+
+.aitutor-gpt .aitutor-messages .aitutor-chip {
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--g-line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--g-text);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.aitutor-gpt .aitutor-messages .aitutor-chip:hover {
+    background: var(--g-hover);
+    color: var(--g-text);
+}
+
+/* ---------------- Composer ---------------- */
+.aitutor-gpt .aitutor-composer-wrap {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 1100px;
+    margin-inline: auto;
+    padding: 0.5rem 1.25rem 0.75rem;
+}
+
+.aitutor-gpt.is-empty .aitutor-composer-wrap {
+    max-width: 768px;
+    padding-bottom: 8vh;
+}
+
+.aitutor-gpt .aitutor-hero {
+    display: none;
+    margin: 0 0 1.6rem;
+    color: var(--g-text);
+    font-family: inherit;
+    font-size: 1.75rem;
+    font-weight: 500;
+    line-height: 1.3;
+    text-align: center;
+}
+
+.aitutor-gpt.is-empty .aitutor-hero {
+    display: block;
+}
+
+.aitutor-gpt .aitutor-composer {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.25rem;
+    min-height: 56px;
+    padding: 0.5rem;
+    border: 0;
+    border-radius: 28px;
+    background: var(--g-composer);
+}
+
+.aitutor-gpt .aitutor-plusbtn,
+.aitutor-gpt .aitutor-micbtn {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--g-text);
+    cursor: pointer;
+}
+
+.aitutor-gpt .aitutor-micbtn {
+    color: var(--g-muted);
+}
+
+.aitutor-gpt .aitutor-plusbtn:hover,
+.aitutor-gpt .aitutor-micbtn:hover,
+.aitutor-gpt .aitutor-plusbtn[aria-expanded="true"],
+.aitutor-gpt .aitutor-micbtn[aria-pressed="true"] {
+    background: var(--g-hover);
+    color: var(--g-text);
+}
+
+.aitutor-gpt .aitutor-micbtn[aria-pressed="true"] {
+    color: #ff5d5d;
+    animation: aitutor-rec 1.2s ease-in-out infinite;
+}
+
+@keyframes aitutor-rec {
+    50% {
+        background: rgba(255, 93, 93, 0.22);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .aitutor-gpt .aitutor-micbtn[aria-pressed="true"] {
+        animation: none;
+    }
+}
+
+.aitutor-gpt.no-voice .aitutor-micbtn {
+    display: none;
+}
+
+.aitutor-gpt .aitutor-plus-wrap {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.aitutor-gpt .aitutor-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-height: 200px;
+    height: 40px;
+    padding: 0.55rem 0.4rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--g-text);
+    font-size: 1rem;
+    line-height: 1.5;
+    resize: none;
+    box-shadow: none;
+    outline: 0;
+}
+
+.aitutor-gpt .aitutor-input::placeholder {
+    color: var(--g-muted);
+    opacity: 1;
+}
+
+.aitutor-gpt .aitutor-input:focus {
+    background: transparent;
+    color: var(--g-text);
+    box-shadow: none;
+}
+
+/* Round button: voice (blue) / send (white arrow) / stop (white square) */
+.aitutor-gpt .aitutor-send {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 40px;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--g-btn-bg);
+    color: var(--g-btn-fg);
+    cursor: pointer;
+}
+
+.aitutor-gpt .aitutor-send .aitutor-ico {
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.aitutor-gpt .aitutor-send[data-state="voice"] {
+    background: var(--g-blue);
+    color: #fff;
+}
+
+.aitutor-gpt .aitutor-send[data-state="voice"] .aitutor-ico-voice,
+.aitutor-gpt .aitutor-send[data-state="send"] .aitutor-ico-send,
+.aitutor-gpt .aitutor-send[data-state="stop"] .aitutor-ico-stop {
+    display: inline-flex;
+}
+
+.aitutor-gpt .aitutor-send.is-idle {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.aitutor-gpt .aitutor-send:disabled {
+    opacity: 0.4;
+}
+
+.aitutor-gpt.is-recording .aitutor-send[data-state="stop"] {
+    box-shadow: 0 0 0 4px var(--g-ring);
+}
+
+.aitutor-gpt .aitutor-voice-note {
+    margin: 0.6rem 0 0;
+    padding: 0.5rem 0.9rem;
+    border-radius: 0.8rem;
+    background: rgba(220, 38, 38, 0.15);
+    color: var(--g-danger);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.aitutor-gpt .aitutor-disclaimer {
+    margin-top: 0.55rem;
+    color: var(--g-muted);
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+.aitutor-gpt.is-empty .aitutor-disclaimer {
+    display: none;
+}
+
+/* "+" menu */
+.aitutor-gpt .aitutor-popover {
+    position: absolute;
+    inset-inline-start: 0;
+    bottom: calc(100% + 0.7rem);
+    z-index: 20;
+    width: min(340px, 85vw);
+    padding: 0.9rem;
+    border: 1px solid var(--g-popover-border);
+    border-radius: 1rem;
+    background: var(--g-popover);
+    color: var(--g-text);
+    box-shadow: 0 10px 30px var(--g-shadow);
+}
+
+.aitutor-gpt .aitutor-popover .aitutor-label {
+    margin-bottom: 0.3rem;
+    color: var(--g-muted);
+}
+
+.aitutor-gpt .aitutor-popover .custom-select {
+    border-color: var(--g-line-strong);
+    background-color: var(--g-bg);
+    color: var(--g-text);
+}
+
+.aitutor-gpt .aitutor-popover .aitutor-hint {
+    margin: 0.3rem 0 0;
+    color: var(--g-muted);
+    font-weight: 400;
+}
+
+.aitutor-gpt .aitutor-popover .aitutor-link {
+    color: var(--g-link);
+    text-decoration: none;
+}
+
+.aitutor-gpt .aitutor-popover-sep {
+    height: 1px;
+    margin: 0.8rem 0;
+    background: var(--g-line);
+}
+
+.aitutor-gpt .aitutor-quick-btn {
+    border: 1px solid var(--g-line);
+    border-radius: 0.65rem;
+    background: transparent;
+    color: var(--g-text);
+}
+
+.aitutor-gpt .aitutor-quick-btn:hover:not(:disabled),
+.aitutor-gpt .aitutor-quick-btn:focus-visible {
+    background: var(--g-popover-hover);
+    color: var(--g-text);
+}
+
+/* Suggestion rows under the composer (empty chat) */
+.aitutor-gpt .aitutor-suggest {
+    display: flex;
+    flex-direction: column;
+    margin-top: 1.1rem;
+}
+
+.aitutor-gpt .aitutor-suggest-row {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 0;
+    border-radius: 0.8rem;
+    background: transparent;
+    color: var(--g-text);
+    font-size: 1rem;
+    text-align: start;
+    cursor: pointer;
+}
+
+.aitutor-gpt .aitutor-suggest-row svg {
+    flex: 0 0 auto;
+    color: var(--g-muted);
+}
+
+.aitutor-gpt .aitutor-suggest-row:hover,
+.aitutor-gpt .aitutor-suggest-row:focus-visible {
+    background: var(--g-hover);
+    color: var(--g-text);
+}
+
+/* ---------------- Light theme (toggled by the sun / moon button) ---------------- */
+.aitutor-gpt.is-dark {
+    --g-bg: #000;
+    --g-sidebar: #0a0a0a;
+    --g-composer: #212121;
+    --g-surface: #2f2f2f;
+    --g-hover: #1f1f1f;
+    --g-border: #262626;
+    --g-text: #ececec;
+    --g-muted: #9b9b9b;
+    --g-hover-strong: #2a2a2a;
+    --g-line: #3a3a3a;
+    --g-line-strong: #444;
+    --g-outline: #555;
+    --g-code-bg: #0d0d0d;
+    --g-popover: #2a2a2a;
+    --g-popover-border: #333;
+    --g-popover-hover: #333;
+    --g-scroll: #333;
+    --g-link: color-mix(in srgb, var(--g-brand) 55%, #fff);
+    --g-danger: #f87171;
+    --g-ring: rgba(255, 255, 255, 0.15);
+    --g-shadow: rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+    --aitutor-primary-soft: #1f1f1f;
+    --aitutor-border: #262626;
+    --aitutor-muted: #9b9b9b;
+}
+
+/* Moon is shown in light mode (click = go dark), sun is shown in dark mode (click = go light). */
+.aitutor-gpt .aitutor-theme-toggle .aitutor-ico-sun,
+.aitutor-gpt.is-dark .aitutor-theme-toggle .aitutor-ico-moon {
+    display: none;
+}
+
+.aitutor-gpt.is-dark .aitutor-theme-toggle .aitutor-ico-sun {
+    display: block;
+}
+
+.aitutor-gpt,
+.aitutor-gpt .aitutor-sidebar,
+.aitutor-gpt .aitutor-main,
+.aitutor-gpt .aitutor-composer,
+.aitutor-gpt .aitutor-popover {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .aitutor-gpt,
+    .aitutor-gpt .aitutor-sidebar,
+    .aitutor-gpt .aitutor-main,
+    .aitutor-gpt .aitutor-composer,
+    .aitutor-gpt .aitutor-popover {
+        transition: none;
+    }
+}
+
+[dir="rtl"] .aitutor-gpt .aitutor-sidebar-open svg {
+    transform: scaleX(-1);
+}
+
+[dir="rtl"] .aitutor-gpt .aitutor-sidebar-tools .aitutor-iconbtn[data-action="toggle-sidebar"] svg {
+    transform: scaleX(-1);
+}
+
+/* ---------------- Small screens ---------------- */
+@media (max-width: 767.98px) {
+    .aitutor-gpt .aitutor-sidebar {
+        position: absolute;
+        inset-block: 0;
+        inset-inline-start: 0;
+        z-index: 30;
+        width: 84vw;
+        max-width: 300px;
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .aitutor-gpt:not(.is-sidebar-collapsed) .aitutor-sidebar {
+        margin-inline-start: 0;
+    }
+
+    .aitutor-gpt .aitutor-course-pill {
+        display: none;
+    }
+
+    .aitutor-gpt .aitutor-hero {
+        font-size: 1.45rem;
+    }
+
+    .aitutor-gpt .aitutor-row-tutor .aitutor-col,
+    .aitutor-gpt .aitutor-row-user .aitutor-col,
+    .aitutor-gpt .aitutor-row-tutor .aitutor-col:has(.aitutor-bubble-wide) {
+        max-width: 92%;
+    }
+
+    .aitutor-gpt.is-empty .aitutor-composer-wrap {
+        padding-bottom: 4vh;
+    }
+}
+
+/* ---------------- Hint mode (switch in the composer, label in the header, badge on hints) ---------------- */
+.aitutor-hintlabel,
+.aitutor-hintbadge {
+    display: inline-block;
+    padding: 0.1rem 0.6rem;
+    border-radius: 999px;
+    background: var(--aitutor-primary);
+    color: #fff;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.aitutor-hintbadge {
+    margin-bottom: 0.4rem;
+}
+
+.aitutor-hinttoggle {
+    flex: 0 0 auto;
+    align-self: center;
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+.aitutor-gpt .aitutor-hinttoggle {
+    display: flex;
+    align-self: flex-end;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 40px;
+    padding-inline: 0.6rem 0.25rem;
+    color: var(--g-muted);
+    font-size: 0.85rem;
+}
+
+.aitutor-gpt .aitutor-hinttoggle .form-check-input {
+    float: none;
+    margin: 0;
+    cursor: pointer;
+}
+
+.aitutor-gpt .aitutor-hinttoggle .form-check-label {
+    cursor: pointer;
+}
+
+.aitutor-gpt .aitutor-hintlabel {
+    flex: 0 0 auto;
+    background: var(--g-brand);
+}
+
+@media (max-width: 767.98px) {
+    .aitutor-gpt .aitutor-hinttoggle .form-check-label {
+        font-size: 0.75rem;
     }
 }

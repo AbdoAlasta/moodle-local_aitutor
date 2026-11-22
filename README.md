@@ -3,9 +3,8 @@
 An **AI Tutor** tab inside every course, next to Course / Participants / Grades. It contains:
 
 - a chat with a course tutor that answers **only from that course's files** and cites its sources;
-- a side menu: New Chat, Suggested Topics, Course Resources, Study Plan, Practice Quiz, Assignments Help, Revision Mode;
-- a **Course Context** card for picking a resource, **Quick Actions** (lecture context, summary, flashcards, MCQs),
-  and **Recent Chats**.
+- a ChatGPT-like layout: a collapsible sidebar with New Chat, chat search and Recents, a centred composer with
+  Hint mode and voice input, and a dark / light theme.
 
 Answers come from the [native-rag-gemini](https://github.com/AbdoAlasta/native-rag-gemini) service, which searches the
 course files indexed by [local_ragindex](https://github.com/AbdoAlasta/moodle-local_ragindex). Moodle's own AI
@@ -25,6 +24,22 @@ providers are not used.
   the Privacy API exports and deletes them.
 
 ## Changelog
+
+### 0.10.0: new look
+- New ChatGPT-like page (from a teammate's redesign): a collapsible left sidebar with **New Chat**, **search chats**
+  and **Recents**; a "What would you like to learn today?" greeting with a centred composer while the chat is empty;
+  the course name in the header; a **dark / light theme** button (remembered in the browser); a short disclaimer
+  under the composer.
+- The composer is a text box that grows with the text (Enter sends, Shift+Enter adds a line), with **voice
+  dictation** and a **voice message** button (browser speech recognition, Chrome / Edge / Safari).
+- A **copy** button under each answer, and the last open chat of the course comes back after a reload.
+- The AI Tutor tab now sits right after "Course" in the course tabs, so it is not hidden under "More". The page uses
+  the same layout as the Grades tab.
+- Hint mode, whole-chat memory, the hourly limit and the RAG client are unchanged. The Hint mode switch stays in the
+  composer, before the text box.
+- Not reachable in this version: the "+" menu (Course Context resource picker and Quick Actions) is hidden because it
+  looked like file upload, and the old side menu (Suggested Topics, Course Resources, Study Plan, Practice Quiz,
+  Assignments Help, Revision Mode) has no buttons in the new layout.
 
 ### 0.9.0: hint mode
 - A **Hint mode** toggle in the chat, saved per chat. With it on, a typed question gets one hint and a guiding question

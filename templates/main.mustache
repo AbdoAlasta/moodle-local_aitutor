@@ -24,97 +24,119 @@
         "courseid": 2,
         "coursename": "Software Engineering II",
         "avatar": "http://example.com/tutor.svg",
+        "courseurl": "http://example.com/course/view.php?id=2",
+        "username": "Student One",
+        "initials": "SO",
+        "courseshort": "SE2",
         "modes": [
             {"mode": "chat", "label": "New Chat", "icon": "i/new"},
             {"mode": "quiz", "label": "Practice Quiz", "icon": "i/questions"}
         ]
     }
 }}
-<div class="aitutor" id="aitutor-root" data-region="aitutor">
-    <nav class="aitutor-sidebar card" aria-label="{{#str}}pluginname, local_aitutor{{/str}}">
-        <div class="aitutor-brand">
-            <img src="{{avatar}}" alt="" class="aitutor-brand-avatar" width="36" height="36">
-            <span class="aitutor-brand-name">{{#str}}pluginname, local_aitutor{{/str}}</span>
-        </div>
-        <ul class="aitutor-nav list-unstyled mb-0">
-            {{#modes}}
-            <li>
-                <button type="button" class="aitutor-nav-item" data-action="nav" data-mode="{{mode}}">
-                    {{#pix}}{{icon}}, core, {{/pix}}
-                    <span>{{label}}</span>
-                </button>
-            </li>
-            {{/modes}}
-        </ul>
-    </nav>
-
-    <section class="aitutor-main card" aria-label="{{#str}}conversation, local_aitutor{{/str}}">
-        <header class="aitutor-main-header">
-            <h2 class="aitutor-chat-title h6 mb-0" data-region="chat-title">{{#str}}newchat, local_aitutor{{/str}}</h2>
-            <span class="aitutor-hintlabel" data-region="hint-label" hidden>{{#str}}hintmode, local_aitutor{{/str}}</span>
-        </header>
-        <div class="aitutor-messages" data-region="messages" role="log" aria-live="polite" tabindex="0"></div>
-        <form class="aitutor-composer" data-region="composer" autocomplete="off">
-            <div class="form-check form-switch aitutor-hinttoggle">
-                <input type="checkbox" role="switch" class="form-check-input" id="aitutor-hintmode" data-region="hint-toggle">
-                <label class="form-check-label" for="aitutor-hintmode">{{#str}}hintmode, local_aitutor{{/str}}</label>
+<div class="aitutor aitutor-gpt" id="aitutor-root" data-region="aitutor">
+    <script>try{if(window.localStorage.getItem('local_aitutor_theme')==='dark'){document.getElementById('aitutor-root').classList.add('is-dark');}}catch(e){}</script>
+    <aside class="aitutor-sidebar" data-region="sidebar" aria-label="{{#str}}pluginname, local_aitutor{{/str}}">
+        <div class="aitutor-sidebar-top">
+            <div class="aitutor-brand">
+                <span class="aitutor-brand-name">{{#str}}pluginname, local_aitutor{{/str}}</span>
             </div>
-            <label for="aitutor-input" class="sr-only">{{#str}}askplaceholder, local_aitutor{{/str}}</label>
-            <input type="text" id="aitutor-input" class="form-control aitutor-input" data-region="input"
-                   maxlength="2000" placeholder="{{#str}}askplaceholder, local_aitutor{{/str}}">
-            <button type="submit" class="aitutor-send" data-action="send" title="{{#str}}send, local_aitutor{{/str}}">
-                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M2.5 20.5 22 12 2.5 3.5l.01 6.5L16 12 2.51 14z"/></svg>
-            </button>
-        </form>
-    </section>
-
-    <aside class="aitutor-side card-stack">
-        <div class="card aitutor-panel" data-region="context-card">
-            <button type="button" class="aitutor-panel-toggle" data-action="toggle-context" aria-expanded="true"
-                    aria-controls="aitutor-context-body">
-                <span class="aitutor-panel-title">{{#pix}}i/course, core, {{/pix}} {{#str}}coursecontext, local_aitutor{{/str}}</span>
-                <span class="aitutor-chevron" aria-hidden="true"></span>
-            </button>
-            <div id="aitutor-context-body" data-region="context-body">
-                <div class="aitutor-coursename" data-region="course-name">{{coursename}}</div>
-                <div class="aitutor-label">{{#str}}selectedresource, local_aitutor{{/str}}</div>
-                <div class="aitutor-resource-row">
-                    {{#pix}}i/files, core, {{/pix}}
-                    <span class="aitutor-resource-name" data-region="resource-name">{{#str}}noresource_selected, local_aitutor{{/str}}</span>
-                    <button type="button" class="aitutor-link" data-action="change-resource">{{#str}}change, local_aitutor{{/str}}</button>
-                </div>
-                <label for="aitutor-resource" class="sr-only">{{#str}}selectedresource, local_aitutor{{/str}}</label>
-                <select id="aitutor-resource" class="custom-select form-control-sm mt-2" data-region="resource-select" hidden>
-                    <option value="0">{{#str}}noresource_selected, local_aitutor{{/str}}</option>
-                </select>
-                <div class="aitutor-usecontext">
-                    <div class="form-check mb-0">
-                        <input type="checkbox" class="form-check-input" id="aitutor-useresource" data-region="use-resource" checked>
-                        <label class="form-check-label" for="aitutor-useresource">{{#str}}usecontext, local_aitutor{{/str}}</label>
-                    </div>
-                    <span class="aitutor-info" title="{{#str}}usecontext_info, local_aitutor{{/str}}" tabindex="0"
-                          aria-label="{{#str}}usecontext_info, local_aitutor{{/str}}">{{#pix}}i/info, core, {{/pix}}</span>
-                </div>
-                <div class="aitutor-hint small">{{#str}}usecontext_hint, local_aitutor{{/str}}</div>
+            <div class="aitutor-sidebar-tools">
+                <button type="button" class="aitutor-iconbtn" data-action="search" aria-expanded="false"
+                        title="{{#str}}search, local_aitutor{{/str}}" aria-label="{{#str}}search, local_aitutor{{/str}}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
+                <button type="button" class="aitutor-iconbtn" data-action="toggle-sidebar" aria-expanded="true"
+                        title="{{#str}}togglesidebar, local_aitutor{{/str}}" aria-label="{{#str}}togglesidebar, local_aitutor{{/str}}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg></button>
             </div>
         </div>
-
-        <div class="card aitutor-panel">
-            <h3 class="aitutor-panel-title">{{#pix}}i/new, core, {{/pix}} {{#str}}quickactions, local_aitutor{{/str}}</h3>
-            <div class="aitutor-quick">
-                <button type="button" class="aitutor-quick-btn" data-action="quick" data-mode="context">{{#pix}}i/files, core, {{/pix}}<span>{{#str}}qa_usecontext, local_aitutor{{/str}}</span></button>
-                <button type="button" class="aitutor-quick-btn" data-action="quick" data-mode="summary">{{#pix}}i/report, core, {{/pix}}<span>{{#str}}qa_summarize, local_aitutor{{/str}}</span></button>
-                <button type="button" class="aitutor-quick-btn" data-action="quick" data-mode="flashcards">{{#pix}}i/new, core, {{/pix}}<span>{{#str}}qa_flashcards, local_aitutor{{/str}}</span></button>
-                <button type="button" class="aitutor-quick-btn" data-action="quick" data-mode="quiz">{{#pix}}i/questions, core, {{/pix}}<span>{{#str}}qa_mcqs, local_aitutor{{/str}}</span></button>
-            </div>
+        <button type="button" class="aitutor-newchat aitutor-nav-item" data-action="nav" data-mode="chat">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>
+            <span>{{#str}}newchat, local_aitutor{{/str}}</span>
+        </button>
+        <div class="aitutor-search" data-region="search" hidden>
+            <input type="search" class="aitutor-search-input" data-region="search-input"
+                   placeholder="{{#str}}searchplaceholder, local_aitutor{{/str}}"
+                   aria-label="{{#str}}search, local_aitutor{{/str}}">
         </div>
-
-        <div class="card aitutor-panel">
-            <div class="aitutor-panel-head">
-                <h3 class="aitutor-panel-title mb-0">{{#pix}}i/log, core, {{/pix}} {{#str}}recentchats, local_aitutor{{/str}}</h3>
-                <button type="button" class="aitutor-link" data-action="viewall">{{#str}}viewall, local_aitutor{{/str}}</button>
-            </div>
+        <div class="aitutor-sidebar-section">
+            <div class="aitutor-sidebar-heading">{{#str}}recents, local_aitutor{{/str}}</div>
             <ul class="aitutor-recent list-unstyled mb-0" data-region="recent-chats"></ul>
         </div>
     </aside>
+
+    <section class="aitutor-main" aria-label="{{#str}}conversation, local_aitutor{{/str}}">
+        <header class="aitutor-main-header">
+            <button type="button" class="aitutor-iconbtn aitutor-sidebar-open" data-action="toggle-sidebar" aria-expanded="true"
+                    title="{{#str}}togglesidebar, local_aitutor{{/str}}" aria-label="{{#str}}togglesidebar, local_aitutor{{/str}}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg></button>
+            <h2 class="aitutor-chat-title" data-region="chat-title">{{#str}}newchat, local_aitutor{{/str}}</h2>
+            <span class="aitutor-hintlabel" data-region="hint-label" hidden>{{#str}}hintmode, local_aitutor{{/str}}</span>
+            <span class="aitutor-course-pill" data-region="course-name">{{coursename}}</span>
+            <button type="button" class="aitutor-iconbtn aitutor-theme-toggle" data-action="toggle-theme" aria-pressed="false"
+                    title="{{#str}}themetoggle, local_aitutor{{/str}}" aria-label="{{#str}}themetoggle, local_aitutor{{/str}}">
+                <svg class="aitutor-ico-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                <svg class="aitutor-ico-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            </button>
+        </header>
+
+        <div class="aitutor-stage" data-region="stage">
+            <div class="aitutor-messages" data-region="messages" role="log" aria-live="polite" tabindex="0"></div>
+
+            <div class="aitutor-composer-wrap" data-region="composer-wrap">
+                <h1 class="aitutor-hero" data-region="hero">{{#str}}welcomehero, local_aitutor{{/str}}</h1>
+                <form class="aitutor-composer" data-region="composer" autocomplete="off">
+                    {{! The "+" menu (course context, quick actions) is hidden for now: it looks like file upload. }}
+                    <div class="aitutor-plus-wrap" hidden>
+                        <button type="button" class="aitutor-plusbtn" data-action="toggle-context" aria-expanded="false"
+                                aria-haspopup="true" aria-controls="aitutor-context-body"
+                                title="{{#str}}coursecontext, local_aitutor{{/str}}" aria-label="{{#str}}coursecontext, local_aitutor{{/str}}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
+                        <div id="aitutor-context-body" class="aitutor-popover" data-region="context-body" hidden>
+                            <div class="aitutor-label">{{#str}}selectedresource, local_aitutor{{/str}}</div>
+                            <div class="aitutor-resource-row">
+                                {{#pix}}i/files, core, {{/pix}}
+                                <span class="aitutor-resource-name" data-region="resource-name">{{#str}}noresource_selected, local_aitutor{{/str}}</span>
+                                <button type="button" class="aitutor-link" data-action="change-resource">{{#str}}change, local_aitutor{{/str}}</button>
+                            </div>
+                            <label for="aitutor-resource" class="sr-only">{{#str}}selectedresource, local_aitutor{{/str}}</label>
+                            <select id="aitutor-resource" class="custom-select form-control-sm mt-2" data-region="resource-select" hidden>
+                                <option value="0">{{#str}}noresource_selected, local_aitutor{{/str}}</option>
+                            </select>
+                            <div class="aitutor-usecontext">
+                                <div class="form-check mb-0">
+                                    <input type="checkbox" class="form-check-input" id="aitutor-useresource" data-region="use-resource" checked>
+                                    <label class="form-check-label" for="aitutor-useresource">{{#str}}usecontext, local_aitutor{{/str}}</label>
+                                </div>
+                                <span class="aitutor-info" title="{{#str}}usecontext_info, local_aitutor{{/str}}" tabindex="0"
+                                      aria-label="{{#str}}usecontext_info, local_aitutor{{/str}}">{{#pix}}i/info, core, {{/pix}}</span>
+                            </div>
+                            <div class="aitutor-hint small">{{#str}}usecontext_hint, local_aitutor{{/str}}</div>
+                            <div class="aitutor-popover-sep"></div>
+                            <div class="aitutor-label">{{#str}}quickactions, local_aitutor{{/str}}</div>
+                            <div class="aitutor-quick">
+                                <button type="button" class="aitutor-quick-btn" data-action="quick" data-mode="context">{{#pix}}i/files, core, {{/pix}}<span>{{#str}}qa_usecontext, local_aitutor{{/str}}</span></button>
+                                <button type="button" class="aitutor-quick-btn" data-action="quick" data-mode="summary">{{#pix}}i/report, core, {{/pix}}<span>{{#str}}qa_summarize, local_aitutor{{/str}}</span></button>
+                                <button type="button" class="aitutor-quick-btn" data-action="quick" data-mode="flashcards">{{#pix}}i/new, core, {{/pix}}<span>{{#str}}qa_flashcards, local_aitutor{{/str}}</span></button>
+                                <button type="button" class="aitutor-quick-btn" data-action="quick" data-mode="quiz">{{#pix}}i/questions, core, {{/pix}}<span>{{#str}}qa_mcqs, local_aitutor{{/str}}</span></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-check form-switch aitutor-hinttoggle">
+                        <input type="checkbox" role="switch" class="form-check-input" id="aitutor-hintmode" data-region="hint-toggle">
+                        <label class="form-check-label" for="aitutor-hintmode">{{#str}}hintmode, local_aitutor{{/str}}</label>
+                    </div>
+                    <label for="aitutor-input" class="sr-only">{{#str}}askplaceholder, local_aitutor{{/str}}</label>
+                    <textarea id="aitutor-input" class="aitutor-input" data-region="input" rows="1"
+                              maxlength="2000" placeholder="{{#str}}askplaceholder, local_aitutor{{/str}}"></textarea>
+                    <button type="button" class="aitutor-micbtn" data-action="dictate" aria-pressed="false"
+                            title="{{#str}}dictate, local_aitutor{{/str}}" aria-label="{{#str}}dictate, local_aitutor{{/str}}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
+                    <button type="submit" class="aitutor-send" data-action="send" data-state="voice"
+                            title="{{#str}}voicesend, local_aitutor{{/str}}" aria-label="{{#str}}voicesend, local_aitutor{{/str}}">
+                        <span class="aitutor-ico aitutor-ico-voice"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg></span>
+                        <span class="aitutor-ico aitutor-ico-send"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg></span>
+                        <span class="aitutor-ico aitutor-ico-stop"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false"><rect x="5" y="5" width="14" height="14" rx="3"/></svg></span>
+                    </button>
+                </form>
+                <div class="aitutor-voice-note" data-region="voice-note" role="status" hidden></div>
+                <div class="aitutor-disclaimer">{{#str}}gptdisclaimer, local_aitutor{{/str}}</div>
+            </div>
+        </div>
+    </section>
 </div>
